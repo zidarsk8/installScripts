@@ -1,0 +1,261 @@
+#!/bin/bash
+
+
+GITLABURL="gitlab.zidar.me"
+MYSQLROOTPASSWORD="toor"
+MYSQLGITLABPASS="gitlabpass"
+
+sudo sed -i "s/localhost/localhost $GITLABURL/g" /etc/hosts
+
+
+sudo apt-get update -y
+sudo apt-get upgrade -y
+
+
+sudo apt-get install -y vim
+sudo update-alternatives --set editor /usr/bin/vim.basic
+
+
+sudo apt-get install -y build-essential zlib1g-dev libyaml-dev libssl-dev libgdbm-dev libreadline-dev libncurses5-dev libffi-dev curl git-core openssh-server redis-server checkinstall libxml2-dev libxslt-dev libcurl4-openssl-dev libicu-dev
+
+
+
+sudo apt-get install -y python
+
+
+python --version
+
+sudo apt-get install -y python-docutils
+
+# needs manual configuration
+# sudo apt-get install -y postfix 
+
+
+
+
+
+
+sudo apt-get remove -y ruby1.8
+
+
+mkdir /tmp/ruby && cd /tmp/ruby
+curl --progress ftp://ftp.ruby-lang.org/pub/ruby/2.0/ruby-2.0.0-p247.tar.gz | tar xz
+cd ruby-2.0.0-p247
+./configure
+make
+sudo make install
+
+
+sudo gem install bundler --no-ri --no-rdoc
+
+
+sudo adduser --disabled-login --gecos 'GitLab' git
+
+
+
+
+# Go to home directory
+cd /home/git
+
+# Clone gitlab shell
+sudo -u git -H git clone https://github.com/gitlabhq/gitlab-shell.git
+
+cd gitlab-shell
+
+# switch to right version
+sudo -u git -H git checkout v1.7.1
+
+
+
+
+
+
+
+
+
+
+sudo -u git -H cp config.yml.example config.yml
+
+
+sudo -u git -H sed -i "s/localhost/$GITLABURL/g" config.yml
+
+
+
+sudo -u git -H ./bin/install
+
+
+
+
+
+
+
+
+
+sudo debconf-set-selections <<< "mysql-server-<version> mysql-server/root_password password $MYSQLROOTPASSWORD"
+sudo debconf-set-selections <<< "mysql-server-<version> mysql-server/root_password_again password $MYSQLROOTPASSWORD"
+sudo apt-get -y install mysql-server
+
+echo "
+CREATE USER 'gitlab'@'localhost' IDENTIFIED BY '$MYSQLGITLABPASS';
+CREATE DATABASE IF NOT EXISTS \`gitlabhq_production\` DEFAULT CHARACTER SET \`utf8\` COLLATE \`utf8_unicode_ci\`;
+GRANT SELECT, LOCK TABLES, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER ON \`gitlabhq_production\`.* TO 'gitlab'@'localhost';
+" > /tmp/create.mysql
+
+mysql -uroot -p$MYSQLROOTPASSWORD test < /tmp/create.mysql 
+
+rm /tmp/create.mysql
+
+
+
+
+
+
+
+
+
+
+
+
+# We'll install GitLab into home directory of the user "git"
+cd /home/git
+
+# Clone GitLab repository
+sudo -u git -H git clone https://github.com/gitlabhq/gitlabhq.git gitlab
+
+# Go to gitlab dir
+cd /home/git/gitlab
+
+# Checkout to stable release
+sudo -u git -H git checkout 6-1-stable
+
+
+
+
+cd /home/git/gitlab
+
+# Copy the example GitLab config
+sudo -u git -H cp config/gitlab.yml.example config/gitlab.yml
+
+# Make sure to change "localhost" to the fully-qualified domain name of your
+# host serving GitLab where necessary
+sudo -u git -H sed -i "s/localhost/$GITLABURL/g" config/gitlab.yml
+
+
+
+
+
+
+
+# Make sure GitLab can write to the log/ and tmp/ directories
+sudo chown -R git log/
+sudo chown -R git tmp/
+sudo chmod -R u+rwX  log/
+sudo chmod -R u+rwX  tmp/
+
+# Create directory for satellites
+sudo -u git -H mkdir /home/git/gitlab-satellites
+
+# Create directories for sockets/pids and make sure GitLab can write to them
+sudo -u git -H mkdir tmp/pids/
+sudo -u git -H mkdir tmp/sockets/
+sudo chmod -R u+rwX  tmp/pids/
+sudo chmod -R u+rwX  tmp/sockets/
+
+# Create public/uploads directory otherwise backup will fail
+sudo -u git -H mkdir public/uploads
+sudo chmod -R u+rwX  public/uploads
+
+# Copy the example Unicorn config
+sudo -u git -H cp config/unicorn.rb.example config/unicorn.rb
+
+# Enable cluster mode if you expect to have a high load instance
+# Ex. change amount of workers to 3 for 2GB RAM server
+#sudo -u git -H editor config/unicorn.rb
+
+# Configure Git global settings for git user, useful when editing via web
+# Edit user.email according to what is set in gitlab.yml
+sudo -u git -H git config --global user.name "GitLab"
+sudo -u git -H git config --global user.email "gitlab@localhost"
+sudo -u git -H git config --global core.autocrlf input
+
+
+
+
+
+
+# Mysql
+sudo -u git cp config/database.yml.mysql config/database.yml
+
+
+# Make sure to update username/password in config/database.yml.
+# You only need to adapt the production settings (first part).
+# If you followed the database guide then please do as follows:
+# Change 'root' to 'gitlab'
+# Change 'secure password' with the value you have given to $password
+# You can keep the double quotes around the password
+sudo -u git -H sed -i "s/secure password/$MYSQLGITLABPASS/g" config/database.yml
+sudo -u git -H sed -i "s/root/gitlab/g" config/database.yml
+
+
+
+# Make config/database.yml readable to git only
+sudo -u git -H chmod o-rwx config/database.yml
+
+
+
+
+cd /home/git/gitlab
+
+sudo gem install charlock_holmes --version '0.6.9.4'
+
+
+
+#this is not in the doc  but it dosn't work 
+#sudo gem install mysql2 -v '0.3.11'
+sudo apt-get install -y mysql-client libmysqlclient-dev
+
+
+# For MySQL (note, the option says "without ... postgres")
+sudo -u git -H bundle install --deployment --without development test postgres aws
+
+
+
+
+yes yes | sudo -u git -H bundle exec rake gitlab:setup RAILS_ENV=production > /tmp/adminstuff
+
+
+
+
+
+
+sudo cp lib/support/init.d/gitlab /etc/init.d/gitlab
+sudo chmod +x /etc/init.d/gitlab
+
+sudo update-rc.d gitlab defaults 21
+
+
+
+
+sudo -u git -H bundle exec rake gitlab:env:info RAILS_ENV=production
+
+sudo service gitlab start
+
+sudo -u git -H bundle exec rake gitlab:check RAILS_ENV=production
+
+
+sudo apt-get install -y nginx
+
+
+
+sudo cp lib/support/nginx/gitlab /etc/nginx/sites-available/gitlab
+sudo ln -s /etc/nginx/sites-available/gitlab /etc/nginx/sites-enabled/gitlab
+
+
+# Change YOUR_SERVER_FQDN to the fully-qualified
+# domain name of your host serving GitLab.
+
+sudo sed -i "s/YOUR_SERVER_FQDN/$GITLABURL/g" /etc/nginx/sites-available/gitlab
+
+sudo service nginx restart
+
+
