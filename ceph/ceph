@@ -1,10 +1,20 @@
 #!/bin/bash
 
+
+#### check script arguments ####
+
 EXPECTED_ARGS=2
 E_BADARGS=65
 
-if [ $# -ne $EXPECTED_ARGS ]
-then
+if [ $# -ne $EXPECTED_ARGS ]; then
+  echo "Usage: `basename $0` node_number number_of_nodes"
+  echo "node_number: 0 - admin node, 1, 2, ... server nodes"
+  echo "number_of_nodes: number of all server nodes in the ceph cluster"
+  exit $E_BADARGS
+fi
+
+if [ $1 -gt $2 ]; then
+  echo "ERROR: arg1 bigger than arg2"
   echo "Usage: `basename $0` node_number number_of_nodes"
   echo "node_number: 0 - admin node, 1, 2, ... server nodes"
   echo "number_of_nodes: number of all server nodes in the ceph cluster"
@@ -13,43 +23,49 @@ fi
 
 
 
+#### constants - change as you wish ####
 
 NETWORK_GATEWAY=10.0.2.2
 NETWORK_IP_PREFIX=10.0.1.   # network address for ceph internal network
 NETWORK_START_IP=10         # first IP adress - 10.0.1.10 ... 
 NETWORK_INTERFACE=eth2      # interface for ceph internal network
+CEPH_USERNAME=ceph
+
+#### script args ####
+
 NODE_NUMBER=$1              # 0=admin, 1..=server nodes
 NODE_COUNT=$2               # number of server nodes
 
+#### generated constants ####
 
-
-NODE_NUMBER=0
-NODE_COUNT=1
-
-
-####
 NETWORK_IP=${NETWORK_IP_PREFIX}$(($NETWORK_START_IP + $NODE_NUMBER))
 HOSTNAME=ceph_node_${NODE_NUMBER}
 [ ${NODE_NUMBER} == "0" ] && HOSTNAME=ceph_admin
-####
 
 
+
+#### prepair files ####
 
 mkdir -p ~/.ssh
+[ -a ~/.ssh/config ] || touch ~/.ssh/config
+
+#### add hosts and ssh config entry for given IP and name ####
 
 function add_node_entry {
   if ! grep -q $2 /etc/hosts; then
     echo "$1 $2" >> /etc/hosts
   fi
-  if ! grep -q ceph_admin ~/.ssh/config; then
+  
+  if ! grep -q $2 ~/.ssh/config; then
     echo "Host $2
         Hostname ceph_admin
-        User ceph" >> ~/.ssh/config
+        User ${CEPH_USERNAME}" >> ~/.ssh/config
   fi
 }
 
 
-# generate hosts and ssh config file entries for ceph_admin and ceph_node_X 
+# generate hosts and ssh config file entries for ceph admin and ceph nodes 
+
 add_node_entry "${NETWORK_IP_PREFIX}${NETWORK_START_IP}" "ceph_admin"
 for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
   add_node_entry "${NETWORK_IP_PREFIX}$(($NETWORK_START_IP + $CURRENT_NODE))" "ceph_node_${CURRENT_NODE}" 
@@ -57,11 +73,12 @@ done
 
 
 
-#set up internal network
+#set up internal network interface
 
-sed -i "s/HOSTNAME=.*/HOSTNAME=${HOSTNAME}/g" /etc/sysconfig/network
+if [ -n "$NETWORK_INTERFACE" ]; then 
+  sed -i "s/HOSTNAME=.*/HOSTNAME=${HOSTNAME}/g" /etc/sysconfig/network
 
-echo "DEVICE=${NETWORK_INTERFACE} 
+  echo "DEVICE=${NETWORK_INTERFACE} 
 BOOTPROTO=none 
 NM_CONTROLLED="no"
 ONBOOT=yes 
@@ -72,40 +89,47 @@ IPADDR=${NETWORK_IP}
 GATEWAY=${NETWORK_GATEWAY}
 USERCTL=no" > /etc/sysconfig/network-scripts/ifcfg-${NETWORK_INTERFACE}
 
-#chkconfig network on
-/etc/init.d/network restart
+  #chkconfig network on
+  /etc/init.d/network restart
+
+fi
+
+
+if id -u ${CEPH_USERNAME} >/dev/null 2>&1; then
+  echo "WARNING: user \"${CEPH_USERNAME}\" already exists"
+else
+  
+  #### create new user ####
+  sudo useradd -d /home/${CEPH_USERNAME} -m ${CEPH_USERNAME}
+  #sudo passwd ${CEPH_USERNAME}
+  echo "${CEPH_USERNAME} ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${CEPH_USERNAME}
+  sudo chmod 0440 /etc/sudoers.d/${CEPH_USERNAME}
+
+  #### generate ssh keys and copy ssh config file for the new user
+  sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh
+  sudo -u ${CEPH_USERNAME} -H ssh-keygen -f /home/${CEPH_USERNAME}/.ssh/${CEPH_USERNAME}_rsa -t rsa -N ''
+
+  cp ~/.ssh/config /home/${CEPH_USERNAME}/.ssh/
+  chown ${CEPH_USERNAME}:${CEPH_USERNAME} /home/${CEPH_USERNAME}/.ssh/
+
+fi
 
 
 
 
 
-sudo useradd -d /home/ceph -m ceph
-
-#sudo passwd ceph
-
-echo "ceph ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/ceph
-sudo chmod 0440 /etc/sudoers.d/ceph
-
-
-
-
-sudo -u ceph -H mkdir -p /home/ceph/.ssh
-sudo -u ceph -H ssh-keygen -f /home/ceph/.ssh/ceph_rsa -t rsa -N ''
-
-
-
-
+#### import rpm keys to avoid key warnings ####
 
 for f in keys/*.key; do 
   sudo rpm --import $f
 done
 
 
-# for basic ceph-deploy
+#### install packages for basic ceph-deploy ####
+
 rpm -Uvh rpm/ceph-deploy-1.2.7-0.noarch.rpm rpm/pushy-0.5.3-1.noarch.rpm rpm/python-argparse-1.2.1-2.el6.noarch.rpm rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
 
 
-#sudo yum install -y snappy leveldb gdisk python-argparse gperftools-libs
 
 
 
