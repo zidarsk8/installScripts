@@ -34,27 +34,25 @@ HOSTNAME=ceph_node_${NODE_NUMBER}
 ####
 
 
-# generate hosts and ssh config file entries for ceph_admin and ceph_node_X 
 
 mkdir -p ~/.ssh
 
-if ! grep -q ceph_admin /etc/hosts; then
-  echo "${NETWORK_IP_PREFIX}${NETWORK_START_IP} ceph_admin" >> /etc/hosts
-fi
-if ! grep -q ceph_admin ~/.ssh/config; then
-  echo "Host ceph_admin
+function add_node_entry {
+  if ! grep -q ceph_admin /etc/hosts; then
+    echo "$1 $2" >> /etc/hosts
+  fi
+  if ! grep -q ceph_admin ~/.ssh/config; then
+    echo "Host $2
         Hostname ceph_admin
         User ceph" >> ~/.ssh/config
-fi
+  fi
+}
+
+
+# generate hosts and ssh config file entries for ceph_admin and ceph_node_X 
+add_node_entry "${NETWORK_IP_PREFIX}${NETWORK_START_IP}" "ceph_admin"
 for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-  if ! grep -q ceph_node_${CURRENT_NODE} /etc/hosts; then
-    echo "${NETWORK_IP_PREFIX}$(($NETWORK_START_IP + $CURRENT_NODE)) ceph_node_${CURRENT_NODE}" >> /etc/hosts
-  fi
-  if ! grep -q ceph_node_${CURRENT_NODE} ~/.ssh/config; then
-    echo "Host ceph_node_${CURRENT_NODE}
-        Hostname ceph_node_${CURRENT_NODE}
-        User ceph" >> ~/.ssh/config
-  fi
+  add_node_entry "${NETWORK_IP_PREFIX}$(($NETWORK_START_IP + $CURRENT_NODE))" "ceph_node_${CURRENT_NODE}" 
 done
 
 
@@ -78,6 +76,9 @@ USERCTL=no" > /etc/sysconfig/network-scripts/ifcfg-${NETWORK_INTERFACE}
 /etc/init.d/network restart
 
 
+
+
+
 sudo useradd -d /home/ceph -m ceph
 
 #sudo passwd ceph
@@ -95,34 +96,18 @@ sudo -u ceph -H ssh-keygen -f /home/ceph/.ssh/ceph_rsa -t rsa -N ''
 
 
 
-
-sudo rpm --import 'https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/release.asc'
-
-
-su -c 'rpm -Uvh http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm'
+for f in keys/*.key; do 
+  sudo rpm --import $f
+done
 
 
-sudo yum install -y snappy leveldb gdisk python-argparse gperftools-libs
+# for basic ceph-deploy
+rpm -Uvh rpm/ceph-deploy-1.2.7-0.noarch.rpm rpm/pushy-0.5.3-1.noarch.rpm rpm/python-argparse-1.2.1-2.el6.noarch.rpm rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
 
 
-su -c 'rpm -Uvh http://ceph.com/rpm-dumpling/el6/noarch/ceph-release-1-0.el6.noarch.rpm'
-
-sudo yum install -y ceph-deploy python-pushy
+#sudo yum install -y snappy leveldb gdisk python-argparse gperftools-libs
 
 
-
-
-sudo yum install -y ceph
-
-
-rpm -ivh fcgi-2.4.0-10.el6.x86_64.rpm
-rpm -ivh mod_fastcgi-2.4.6-2.el6.rf.x86_64.rpm
-
-
-
-
-
-# sudo yum update -y --downloadonly --downloaddir=/tmp/rpm snappy leveldb gdisk python-argparse gperftools-libs ceph-deploy python-pushy ceph 
 
 
 
