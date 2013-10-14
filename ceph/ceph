@@ -59,7 +59,7 @@ function add_node_entry {
   
   if ! grep -q $2 ~/.ssh/config; then
     echo "Host $2
-        Hostname ${HOSTNAME}
+        Hostname $2
         User ${CEPH_USERNAME}" >> ~/.ssh/config
   fi
 }
@@ -105,12 +105,12 @@ for f in keys/*.key; do
   sudo rpm --import $f
 done
 
-rpm -Uvh rpm/sshpass-1.05-1.el6.x86_64.rpm
 
 if id -u ${CEPH_USERNAME} >/dev/null 2>&1; then
   echo "WARNING: user \"${CEPH_USERNAME}\" already exists"
 else
   
+  SSH_KEY_NAME=${CEPH_USERNAME}_rsa
   #### create new user ####
   sudo useradd -d /home/${CEPH_USERNAME} -m ${CEPH_USERNAME}
   echo -e "${CEPH_PASSWORD}\n${CEPH_PASSWORD}" | (passwd --stdin ${CEPH_USERNAME})
@@ -119,24 +119,31 @@ else
 
   #### generate ssh keys and copy ssh config file for the new user ####
   sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh
-  sudo -u ${CEPH_USERNAME} -H ssh-keygen -f /home/${CEPH_USERNAME}/.ssh/${CEPH_USERNAME}_rsa -t rsa -N ''
+  sudo -u ${CEPH_USERNAME} -H ssh-keygen -f /home/${CEPH_USERNAME}/.ssh/${SSH_KEY_NAME} -t rsa -N ''
 
   cp ~/.ssh/config /home/${CEPH_USERNAME}/.ssh/
-  chown ${CEPH_USERNAME}:${CEPH_USERNAME} /home/${CEPH_USERNAME}/.ssh/
+  chown ${CEPH_USERNAME}:${CEPH_USERNAME} -R /home/${CEPH_USERNAME}/.ssh
   
 
+  #### admin node shuld be installed last so it updates all the node public keys
   if [ ${NODE_NUMBER}  -eq 0 ]; then
-    #### admin node should be the first running so it should only set its own public key ####
-    sudo -u ${CEPH_USERNAME} -H cp ~/.ssh/{${CEPH_USERNAME}_rsa.pub,authorized_keys}
-  else
-    #### each other node will add its key to admin node and then sync all the authorized_keys ####
-    sshpass -p "${CEPH_PASSWORD}" ssh-copy-id -i /home/ceph/.ssh/ceph_rsa.pub ceph_admin
-    sshpass -p "${CEPH_PASSWORD}" scp ceph_admin:.ssh/authorized_keys /tmp/
+
+    rpm -Uvh rpm/sshpass-1.05-1.el6.x86_64.rpm
+    sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh/node_keys/
+
+    sudo -u ${CEPH_USERNAME} -H cp /home/${CEPH_USERNAME}/.ssh/{${SSH_KEY_NAME}.pub,node_keys/server_${SSH_KEY_NAME}.pub}
 
     for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-      sshpass -p "${CEPH_PASSWORD}" scp /tmp/authorized_keys ceph_node_${CURRENT_NODE}:.ssh/authorized_keys 
+      sshpass -p "${CEPH_PASSWORD}" scp -o StrictHostKeyChecking=no ceph_node_${CURRENT_NODE}:.ssh/${SSH_KEY_NAME}.pub /home/${CEPH_USERNAME}/.ssh/node_keys/node_${CURRENT_NODE}_${SSH_KEY_NAME}.pub
     done
+    
+    sudo -u ${CEPH_USERNAME} -H cat /home/${CEPH_USERNAME}/.ssh/node_keys/*.pub > /home/${CEPH_USERNAME}/.ssh/authorized_keys
+    sudo -u ${CEPH_USERNAME} -H chmod 600 /home/${CEPH_USERNAME}/.ssh/authorized_keys
 
+    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
+      sshpass -p "${CEPH_PASSWORD}" scp -o StrictHostKeyChecking=no /home/${CEPH_USERNAME}/.ssh/authorized_keys ceph_node_${CURRENT_NODE}:.ssh/
+    done
+    
   fi
 fi
 
