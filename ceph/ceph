@@ -30,6 +30,7 @@ NETWORK_IP_PREFIX=10.0.1.   # network address for ceph internal network
 NETWORK_START_IP=10         # first IP adress - 10.0.1.10 ... 
 NETWORK_INTERFACE=eth2      # interface for ceph internal network
 CEPH_USERNAME=ceph
+CEPH_PASSWORD=cephpass
 
 #### script args ####
 
@@ -58,7 +59,7 @@ function add_node_entry {
   
   if ! grep -q $2 ~/.ssh/config; then
     echo "Host $2
-        Hostname ceph_admin
+        Hostname ${HOSTNAME}
         User ${CEPH_USERNAME}" >> ~/.ssh/config
   fi
 }
@@ -95,26 +96,6 @@ USERCTL=no" > /etc/sysconfig/network-scripts/ifcfg-${NETWORK_INTERFACE}
 fi
 
 
-if id -u ${CEPH_USERNAME} >/dev/null 2>&1; then
-  echo "WARNING: user \"${CEPH_USERNAME}\" already exists"
-else
-  
-  #### create new user ####
-  sudo useradd -d /home/${CEPH_USERNAME} -m ${CEPH_USERNAME}
-  #sudo passwd ${CEPH_USERNAME}
-  echo "${CEPH_USERNAME} ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${CEPH_USERNAME}
-  sudo chmod 0440 /etc/sudoers.d/${CEPH_USERNAME}
-
-  #### generate ssh keys and copy ssh config file for the new user
-  sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh
-  sudo -u ${CEPH_USERNAME} -H ssh-keygen -f /home/${CEPH_USERNAME}/.ssh/${CEPH_USERNAME}_rsa -t rsa -N ''
-
-  cp ~/.ssh/config /home/${CEPH_USERNAME}/.ssh/
-  chown ${CEPH_USERNAME}:${CEPH_USERNAME} /home/${CEPH_USERNAME}/.ssh/
-
-fi
-
-
 
 
 
@@ -123,6 +104,45 @@ fi
 for f in keys/*.key; do 
   sudo rpm --import $f
 done
+
+rpm -Uvh rpm/sshpass-1.05-1.el6.x86_64.rpm
+
+if id -u ${CEPH_USERNAME} >/dev/null 2>&1; then
+  echo "WARNING: user \"${CEPH_USERNAME}\" already exists"
+else
+  
+  #### create new user ####
+  sudo useradd -d /home/${CEPH_USERNAME} -m ${CEPH_USERNAME}
+  echo -e "${CEPH_PASSWORD}\n${CEPH_PASSWORD}" | (passwd --stdin ${CEPH_USERNAME})
+  echo "${CEPH_USERNAME} ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${CEPH_USERNAME}
+  sudo chmod 0440 /etc/sudoers.d/${CEPH_USERNAME}
+
+  #### generate ssh keys and copy ssh config file for the new user ####
+  sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh
+  sudo -u ${CEPH_USERNAME} -H ssh-keygen -f /home/${CEPH_USERNAME}/.ssh/${CEPH_USERNAME}_rsa -t rsa -N ''
+
+  cp ~/.ssh/config /home/${CEPH_USERNAME}/.ssh/
+  chown ${CEPH_USERNAME}:${CEPH_USERNAME} /home/${CEPH_USERNAME}/.ssh/
+  
+
+  if [ ${NODE_NUMBER}  -eq 0 ]; then
+    #### admin node should be the first running so it should only set its own public key ####
+    sudo -u ${CEPH_USERNAME} -H cp ~/.ssh/{${CEPH_USERNAME}_rsa.pub,authorized_keys}
+  else
+    #### each other node will add its key to admin node and then sync all the authorized_keys ####
+    sshpass -p "${CEPH_PASSWORD}" ssh-copy-id -i /home/ceph/.ssh/ceph_rsa.pub ceph_admin
+    sshpass -p "${CEPH_PASSWORD}" scp ceph_admin:.ssh/authorized_keys /tmp/
+
+    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
+      sshpass -p "${CEPH_PASSWORD}" scp /tmp/authorized_keys ceph_node_${CURRENT_NODE}:.ssh/authorized_keys 
+    done
+
+  fi
+fi
+
+
+
+
 
 
 #### install packages for basic ceph-deploy ####
