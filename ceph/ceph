@@ -42,6 +42,7 @@ NODE_COUNT=$2               # number of server nodes
 NETWORK_IP=${NETWORK_IP_PREFIX}$(($NETWORK_START_IP + $NODE_NUMBER))
 HOSTNAME=ceph_node_${NODE_NUMBER}
 [ ${NODE_NUMBER} == "0" ] && HOSTNAME=ceph_admin
+SSH_KEY_NAME=${CEPH_USERNAME}_rsa
 
 
 
@@ -49,6 +50,8 @@ HOSTNAME=ceph_node_${NODE_NUMBER}
 
 mkdir -p ~/.ssh
 [ -a ~/.ssh/config ] || touch ~/.ssh/config
+
+
 
 #### add hosts and ssh config entry for given IP and name ####
 
@@ -60,13 +63,14 @@ function add_node_entry {
   if ! grep -q $2 ~/.ssh/config; then
     echo "Host $2
         Hostname $2
+        IdentityFile ~/.ssh/${SSH_KEY_NAME}
         User ${CEPH_USERNAME}" >> ~/.ssh/config
   fi
 }
 
-
 # generate hosts and ssh config file entries for ceph admin and ceph nodes 
 
+echo "generating hosts and ssh config entries"
 add_node_entry "${NETWORK_IP_PREFIX}${NETWORK_START_IP}" "ceph_admin"
 for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
   add_node_entry "${NETWORK_IP_PREFIX}$(($NETWORK_START_IP + $CURRENT_NODE))" "ceph_node_${CURRENT_NODE}" 
@@ -76,6 +80,7 @@ done
 
 #set up internal network interface
 
+echo "seting up internal network interface"
 if [ -n "$NETWORK_INTERFACE" ]; then 
   sed -i "s/HOSTNAME=.*/HOSTNAME=${HOSTNAME}/g" /etc/sysconfig/network
 
@@ -99,18 +104,14 @@ fi
 
 
 
-#### import rpm keys to avoid key warnings ####
-
-for f in keys/*.key; do 
-  sudo rpm --import $f
-done
-
+#### generate a new user and update ssh keys ####
 
 if id -u ${CEPH_USERNAME} >/dev/null 2>&1; then
   echo "WARNING: user \"${CEPH_USERNAME}\" already exists"
 else
   
-  SSH_KEY_NAME=${CEPH_USERNAME}_rsa
+  echo "generating ssh key: $SSH_KEY_NAME"
+
   #### create new user ####
   sudo useradd -d /home/${CEPH_USERNAME} -m ${CEPH_USERNAME}
   echo -e "${CEPH_PASSWORD}\n${CEPH_PASSWORD}" | (passwd --stdin ${CEPH_USERNAME})
@@ -128,20 +129,29 @@ else
   #### admin node shuld be installed last so it updates all the node public keys
   if [ ${NODE_NUMBER}  -eq 0 ]; then
 
+    echo "syncronising public keys"    
+
+    # copy public keys from all nodes and servers into ~/.ssh/node_keys and generate authorized keys file
     rpm -Uvh rpm/sshpass-1.05-1.el6.x86_64.rpm
     sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh/node_keys/
-
     sudo -u ${CEPH_USERNAME} -H cp /home/${CEPH_USERNAME}/.ssh/{${SSH_KEY_NAME}.pub,node_keys/server_${SSH_KEY_NAME}.pub}
-
     for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
       sshpass -p "${CEPH_PASSWORD}" scp -o StrictHostKeyChecking=no ceph_node_${CURRENT_NODE}:.ssh/${SSH_KEY_NAME}.pub /home/${CEPH_USERNAME}/.ssh/node_keys/node_${CURRENT_NODE}_${SSH_KEY_NAME}.pub
     done
     
-    sudo -u ${CEPH_USERNAME} -H cat /home/${CEPH_USERNAME}/.ssh/node_keys/*.pub > /home/${CEPH_USERNAME}/.ssh/authorized_keys
+    sudo -u ${CEPH_USERNAME} -H bash -c "cat /home/${CEPH_USERNAME}/.ssh/node_keys/*.pub > /home/${CEPH_USERNAME}/.ssh/authorized_keys"
     sudo -u ${CEPH_USERNAME} -H chmod 600 /home/${CEPH_USERNAME}/.ssh/authorized_keys
+    
+    # generate known_hosts file for all nodes and the server
+    sudo -u ${CEPH_USERNAME} bash -c "ssh-keyscan -H ceph_admin > /home/${CEPH_USERNAME}/.ssh/known_hosts"
+    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
+      sudo -u ${CEPH_USERNAME} bash -c "ssh-keyscan -H ceph_node_${CURRENT_NODE} >> /home/${CEPH_USERNAME}/.ssh/known_hosts"
+    done
+
 
     for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-      sshpass -p "${CEPH_PASSWORD}" scp -o StrictHostKeyChecking=no /home/${CEPH_USERNAME}/.ssh/authorized_keys ceph_node_${CURRENT_NODE}:.ssh/
+      sshpass -p "${CEPH_PASSWORD}" scp /home/${CEPH_USERNAME}/.ssh/authorized_keys ceph_node_${CURRENT_NODE}:.ssh/
+      sshpass -p "${CEPH_PASSWORD}" scp /home/${CEPH_USERNAME}/.ssh/known_hosts ceph_node_${CURRENT_NODE}:.ssh/
     done
     
   fi
@@ -149,8 +159,13 @@ fi
 
 
 
+echo "intalling packages"
 
+#### import rpm keys to avoid key warnings ####
 
+for f in keys/*.key; do 
+  sudo rpm --import $f
+done
 
 #### install packages for basic ceph-deploy ####
 
