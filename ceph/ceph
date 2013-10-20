@@ -22,7 +22,11 @@ if [ $1 -gt $2 ]; then
 fi
 
 
-source ceph.cfg
+
+source $(dirname $0)/ceph.cfg
+
+source $(dirname $0)/network.sh
+
 
 
 
