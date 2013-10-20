@@ -1,14 +1,9 @@
 #!/bin/bash
 
 
-#### prepair files ####
-
-
-# add hosts and ssh config entry for given IP and name ####
-
 function add_hosts_ssh_entry {
     
-    if [ "$#" -lt 1 ]; then
+    if [ "$#" -lt 4 ]; then
         echo "usage: add_hosts_ssh_entry ip name ssh_key_file ssh_username [ssh_port]"
         return 1
     fi
@@ -18,7 +13,9 @@ function add_hosts_ssh_entry {
     local ssh_key=$3
     local ssh_username=$4
     local ssh_port=""
-    [ -n "$5" ] || local ssh_port="Port $5"
+    [ -n "$5" ] && local ssh_port="Port $5"
+
+    echo "adding '$name' to ssh config and hosts"
 
     mkdir -p ~/.ssh
     [ -a ~/.ssh/config ] || touch ~/.ssh/config
@@ -36,17 +33,7 @@ function add_hosts_ssh_entry {
     fi
 }
 
-# generate hosts and ssh config file entries for ceph admin and ceph nodes 
 
-echo "generating hosts and ssh config entries"
-add_node_entry "${NETWORK_IP_PREFIX}${NETWORK_START_IP}" "ceph_admin"
-for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-    add_node_entry "${NETWORK_IP_PREFIX}$(($NETWORK_START_IP + $CURRENT_NODE))" "ceph_node_${CURRENT_NODE}" 
-done
-
-
-
-#set up internal network interface
 
 function set_hostname {
     if [ "$#" -lt 1 ]; then
@@ -56,7 +43,15 @@ function set_hostname {
     sed -i "s/HOSTNAME=.*/HOSTNAME=${HOSTNAME}/g" /etc/sysconfig/network
 }
 
+
+
 function config_interface {
+
+    if [ "$#" -lt 4 ]; then
+        echo "usage: config_interface 'interface' 'network' 'netmask' 'ip' 'gateway'"
+        return 1
+    fi
+    
 
     local interface=$1
     local network=$2

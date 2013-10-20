@@ -3,105 +3,65 @@
 
 #### check script arguments ####
 
-EXPECTED_ARGS=2
+EXPECTED_ARGS=1
 E_BADARGS=65
 
 if [ $# -ne $EXPECTED_ARGS ]; then
-  echo "Usage: `basename $0` node_number number_of_nodes"
+  echo "Usage: `basename $0` node_number"
   echo "node_number: 0 - admin node, 1, 2, ... server nodes"
-  echo "number_of_nodes: number of all server nodes in the ceph cluster"
-  exit $E_BADARGS
-fi
-
-if [ $1 -gt $2 ]; then
-  echo "ERROR: arg1 bigger than arg2"
-  echo "Usage: `basename $0` node_number number_of_nodes"
-  echo "node_number: 0 - admin node, 1, 2, ... server nodes"
-  echo "number_of_nodes: number of all server nodes in the ceph cluster"
+  echo ""
   exit $E_BADARGS
 fi
 
 
+echo $(dirname $0)
 
 source $(dirname $0)/ceph.cfg
+source $(dirname $0)/network.cfg
 
 source $(dirname $0)/network.sh
+source $(dirname $0)/functions.sh
 
 
+# generate hosts and ssh config file entries for ceph admin and ceph nodes 
 
-
-
-#### generate a new user and update ssh keys ####
-
-if id -u ${CEPH_USERNAME} >/dev/null 2>&1; then
-  echo "WARNING: user \"${CEPH_USERNAME}\" already exists"
-else
-  
-  echo "generating ssh key: $SSH_KEY_NAME"
-
-  #### create new user ####
-  sudo useradd -d /home/${CEPH_USERNAME} -m ${CEPH_USERNAME}
-  echo -e "${CEPH_PASSWORD}\n${CEPH_PASSWORD}" | (passwd --stdin ${CEPH_USERNAME})
-  echo "${CEPH_USERNAME} ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${CEPH_USERNAME}
-  sudo chmod 0440 /etc/sudoers.d/${CEPH_USERNAME}
-
-  #### generate ssh keys and copy ssh config file for the new user ####
-  sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh
-  sudo -u ${CEPH_USERNAME} -H ssh-keygen -f /home/${CEPH_USERNAME}/.ssh/${SSH_KEY_NAME} -t rsa -N ''
-
-  cp ~/.ssh/config /home/${CEPH_USERNAME}/.ssh/
-  chown ${CEPH_USERNAME}:${CEPH_USERNAME} -R /home/${CEPH_USERNAME}/.ssh
-  
-
-  #### admin node shuld be installed last so it updates all the node public keys
-  if [ ${NODE_NUMBER}  -eq 0 ]; then
-
-    echo "syncronising public keys"    
-
-    # copy public keys from all nodes and servers into ~/.ssh/node_keys and generate authorized keys file
-    rpm -Uvh rpm/sshpass-1.05-1.el6.x86_64.rpm
-    sudo -u ${CEPH_USERNAME} -H mkdir -p /home/${CEPH_USERNAME}/.ssh/node_keys/
-    sudo -u ${CEPH_USERNAME} -H cp /home/${CEPH_USERNAME}/.ssh/{${SSH_KEY_NAME}.pub,node_keys/server_${SSH_KEY_NAME}.pub}
-    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-      sshpass -p "${CEPH_PASSWORD}" scp -o StrictHostKeyChecking=no ceph_node_${CURRENT_NODE}:.ssh/${SSH_KEY_NAME}.pub /home/${CEPH_USERNAME}/.ssh/node_keys/node_${CURRENT_NODE}_${SSH_KEY_NAME}.pub
-    done
+for (( i=0; i<$NODE_COUNT; i++ )); do
+    add_hosts_ssh_entry ${NODES[$i-ip]} ${NODES[$i-name]} $SSH_KEY_FILE $CEPH_USERNAME
+done
     
-    sudo -u ${CEPH_USERNAME} -H bash -c "cat /home/${CEPH_USERNAME}/.ssh/node_keys/*.pub > /home/${CEPH_USERNAME}/.ssh/authorized_keys"
-    sudo -u ${CEPH_USERNAME} -H chmod 600 /home/${CEPH_USERNAME}/.ssh/authorized_keys
-    
-    # generate known_hosts file for all nodes and the server
-    sudo -u ${CEPH_USERNAME} bash -c "ssh-keyscan -H ceph_admin > /home/${CEPH_USERNAME}/.ssh/known_hosts"
-    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-      sudo -u ${CEPH_USERNAME} bash -c "ssh-keyscan -H ceph_node_${CURRENT_NODE} >> /home/${CEPH_USERNAME}/.ssh/known_hosts"
+sleep 1
+
+add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+
+
+rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
+
+if [ ${NODE_NUMBER}  -eq 0 ]; then
+    for  (( i=1; i<$NODE_COUNT; i++ )); do
+        sshpass -p "${NODES[$i-password]}" scp -o StrictHostKeyChecking=no -r $(dirname $0) "${NODES[$i-username]}@${NODES[$i-ip]}:"
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "./ceph/ceph $i"
     done
 
-
-    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-      sshpass -p "${CEPH_PASSWORD}" scp /home/${CEPH_USERNAME}/.ssh/authorized_keys ceph_node_${CURRENT_NODE}:.ssh/
-      sshpass -p "${CEPH_PASSWORD}" scp /home/${CEPH_USERNAME}/.ssh/known_hosts ceph_node_${CURRENT_NODE}:.ssh/
-    done
-    
-  fi
 fi
 
-
-
-echo "intalling packages"
-
-#### import rpm keys to avoid key warnings ####
-
-for f in keys/*.key; do 
-  sudo rpm --import $f
-done
-
-#### install packages for basic ceph-deploy ####
-
-rpm -Uvh rpm/ceph-deploy-1.2.7-0.noarch.rpm rpm/pushy-0.5.3-1.noarch.rpm rpm/python-argparse-1.2.1-2.el6.noarch.rpm rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
-
-
-
-
-
+# #### generate a new user and update ssh keys ####
+# 
+# echo "intalling packages"
+# 
+# #### import rpm keys to avoid key warnings ####
+# 
+# for f in keys/*.key; do 
+#   sudo rpm --import $f
+# done
+# 
+# #### install packages for basic ceph-deploy ####
+# 
+# rpm -Uvh rpm/ceph-deploy-1.2.7-0.noarch.rpm rpm/pushy-0.5.3-1.noarch.rpm rpm/python-argparse-1.2.1-2.el6.noarch.rpm rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
+# 
+# 
+# 
+# 
+# 
 
 
 
