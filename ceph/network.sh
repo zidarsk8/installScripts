@@ -40,7 +40,9 @@ function set_hostname {
         echo "usage: set_hostname hostname"
         return 1
     fi
-    sed -i "s/HOSTNAME=.*/HOSTNAME=${HOSTNAME}/g" /etc/sysconfig/network
+    local hostname=$1
+    hostname $hostname
+    sed -i "s/HOSTNAME=.*/HOSTNAME=${hostname}/g" /etc/sysconfig/network
 }
 
 

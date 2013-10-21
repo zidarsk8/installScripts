@@ -25,6 +25,8 @@ source $(dirname $0)/functions.sh
 
 # generate hosts and ssh config file entries for ceph admin and ceph nodes 
 
+set_hostname ${NODES[${NODE_NUMBER}-name]}
+
 for (( i=0; i<$NODE_COUNT; i++ )); do
     add_hosts_ssh_entry ${NODES[$i-ip]} ${NODES[$i-name]} $SSH_KEY_FILE $CEPH_USERNAME
 done
@@ -39,13 +41,13 @@ if [ ${NODE_NUMBER}  -eq 0 ]; then
     rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
-        echo "######## installing node: $1 #######"
+        echo "######## installing node: $i #######"
         sleep 1
         sshpass -p "${NODES[$i-password]}" scp -o StrictHostKeyChecking=no -r $(dirname $0) "${NODES[$i-username]}@${NODES[$i-ip]}:"
         sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "./ceph/ceph $i"
     done
 
-    sync_ssh_keys  $CEPH_USERNAME $SSH_KEY_FILE
+    sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 fi
 
 
@@ -55,13 +57,13 @@ echo "intalling packages"
 
 #### import rpm keys to avoid key warnings ####
 
-for f in keys/*.key; do 
+for f in $(dirname $0)/keys/*.key; do 
   sudo rpm --import $f
 done
 
 #### install packages for basic ceph-deploy ####
 
-rpm -Uvh rpm/ceph-deploy-1.2.7-0.noarch.rpm rpm/pushy-0.5.3-1.noarch.rpm rpm/python-argparse-1.2.1-2.el6.noarch.rpm rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
+rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
 
 
 
