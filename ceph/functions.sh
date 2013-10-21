@@ -2,6 +2,14 @@
 
 function sync_ssh_keys { 
 
+    if [ "$#" -lt 2 ]; then
+        echo "this should only be run on the server node"
+        echo "usage: sync_ssh_keys 'ceph_username' 'ssh_key_name'"
+        return 1
+    fi
+
+    local ceph_username=$1
+    local ssh_key_name=$1
     local ssh_folder="/home/${ceph_username}/.ssh/"
 
     echo "syncronising public keys"        
@@ -9,7 +17,7 @@ function sync_ssh_keys {
     # copy public keys from all nodes and servers into ~/.ssh/node_keys and generate authorized keys file
 
     sudo -u ${ceph_username} -H mkdir -p ${ssh_folder}node_keys/
-    sudo -u ${ceph_username} -H cp ${ssh_folder}{${ssh_key_name}.pub,node_keys/server_${ssh_key_name}.pub}
+    sudo -u ${ceph_username} -H scp ${ssh_folder}{${ssh_key_name}.pub,node_keys/server_${ssh_key_name}.pub}
 
     
     # generate known_hosts file for all nodes and the server
@@ -17,35 +25,26 @@ function sync_ssh_keys {
  
 
     
-    for (( i=0; i<$NODE_COUNT; i++ )); do
+    for (( i=1; i<$NODE_COUNT; i++ )); do
         sudo -u ${ceph_username} bash -c "ssh-keyscan -H ${NODES[$i-name]} >> ${ssh_folder}known_hosts"
         sudo -u ${ceph_username} bash -c "ssh-keyscan -H ${NODES[$i-ip]} >> ${ssh_folder}known_hosts"
     done
      
 
-    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-        sshpass -p "${ceph_password}" scp ceph_node_${CURRENT_NODE}:.ssh/${ssh_key_name}.pub ${ssh_folder}node_keys/node_${CURRENT_NODE}_${ssh_key_name}.pub
+    for (( i=1; i<$NODE_COUNT; i++ )); do
+        sshpass -p "${NODES[$i-password]}" scp ${NODES[$i-name]}:.ssh/${ssh_key_name}.pub ${ssh_folder}node_keys/node_${i}_${ssh_key_name}.pub
     done
     
     sudo -u ${ceph_username} -H bash -c "cat ${ssh_folder}node_keys/*.pub > ${ssh_folder}authorized_keys"
     sudo -u ${ceph_username} -H chmod 600 ${ssh_folder}authorized_keys
 
 
-
-    for (( CURRENT_NODE=1; CURRENT_NODE<=$NODE_COUNT; CURRENT_NODE++ )); do
-        sshpass -p "${ceph_password}" scp ${ssh_folder}authorized_keys ceph_node_${CURRENT_NODE}:.ssh/
-        sshpass -p "${ceph_password}" scp ${ssh_folder}known_hosts ceph_node_${CURRENT_NODE}:.ssh/
+    for (( i=1; i<$NODE_COUNT; i++ )); do
+        sshpass -p "${ceph_password}" scp ${ssh_folder}authorized_keys ${NODES[$i-name]}:.ssh/
+        sshpass -p "${ceph_password}" scp ${ssh_folder}known_hosts ${NODES[$i-name]}:.ssh/
     done
 
 
-    for (( i=0; i<$NODE_COUNT; i++ )); do
-        echo ""
-        echo "current node ${i}"
-        echo "ip           ${NODES[$i-ip]}"
-        echo "ip           ${NODES[$i-password]}"
-        echo "ip           ${NODES[$i-username]}"
-    done
-     
 } 
 
 
