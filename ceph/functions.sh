@@ -118,7 +118,7 @@ w
     /usr/sbin/xfs_admin -L $label "${disk}1"
 
     echo "LABEL=/$label   $mountpoint   xfs defaults   1 2" >> /etc/fstab
-    mount 
+    mount "${disk}1" "$mountpoint"
 
 }
 
