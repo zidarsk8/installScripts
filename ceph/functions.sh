@@ -83,3 +83,42 @@ function add_ceph_user {
 }
 
 
+
+
+
+
+
+
+
+
+function format_xfs_drive {
+
+    label=cephxfs
+    disk=$1
+    mountpoint=$2
+
+    mkdir -p ${mountpoint}
+
+    rpm -Uvh $(dirname $0)/rpm/xfsdump-3.0.4-3.el6.x86_64.rpm $(dirname $0)/rpm/xfsprogs-3.1.1-10.el6_4.1.x86_64.rpm
+
+    echo "o
+c
+u
+n
+p
+1
+
+
+p
+w
+" | fdisk ${disk}
+
+    mkfs.xfs "${disk}1"
+
+    /usr/sbin/xfs_admin -L $label "${disk}1"
+
+    echo "LABEL=/$label   $mountpoint   xfs defaults   1 2" >> /etc/fstab
+    mount 
+
+}
+

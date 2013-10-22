@@ -49,13 +49,22 @@ done
 
 #### install packages for basic ceph-deploy ####
 
-# rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
-rpm -Uvh $(dirname $0)/rpm/*.rpm
+rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
+# rpm -Uvh $(dirname $0)/rpm/*.rpm
+
+
+
+
+
+format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} /xfs/osd${NODE_NUMBER} 
+
 
 
 
 
 if [ ${NODE_NUMBER}  -eq 0 ]; then
+
+    passwd -h > /dev/null || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
         echo "######## installing node: $i #######"
@@ -66,6 +75,7 @@ if [ ${NODE_NUMBER}  -eq 0 ]; then
 
     sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 fi
+
 
 
 
