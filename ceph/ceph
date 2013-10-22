@@ -49,8 +49,8 @@ done
 
 #### install packages for basic ceph-deploy ####
 
-# rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
-rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/python-pushy-0.5.1-4.2.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
+rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
+# rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/python-pushy-0.5.1-4.2.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
 # rpm -Uvh $(dirname $0)/rpm/*.rpm
 
 

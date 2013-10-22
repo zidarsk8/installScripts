@@ -122,3 +122,19 @@ w
 
 }
 
+
+function update_openssl {
+    yum -y groupinstall "Development tools"
+    yum -y install rpm-build zlib-devel krb5-devel
+    mkdir -p /usr/src/redhat/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+    echo '%_topdir /usr/src/redhat' > ~/.rpmmacros
+    # wget https://www.ptudor.net/linux/openssl/resources/openssl-1.0.1e-19.el6.src.rpm
+    echo 77077f36e73c5fef83779b8d1e63e1b89c418ecb589cbadfbe185d90724ae28b
+    openssl dgst -sha256 $(dirname $0)/rpm/openssl-1.0.1e-19.el6.src.rpm
+    rpm -Uvh $(dirname $0)/rpm/openssl-1.0.1e-19.el6.src.rpm
+    cd /usr/src/redhat/SPECS/
+    time rpmbuild -ba openssl.spec
+    cd /usr/src/redhat/RPMS/x86_64/
+    rpm -Fvh openssl-1.0.1e-*.rpm openssl-libs-1.0.1e-*.rpm openssl-devel-1.0.1e-*.rpm
+
+}

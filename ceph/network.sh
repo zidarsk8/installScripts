@@ -27,6 +27,7 @@ function add_hosts_ssh_entry {
     if ! grep -q $name ~/.ssh/config; then
         echo "Host $name
         Hostname $name
+        # RequestTTY force
         IdentityFile ~/.ssh/${ssh_key}
         User ${ssh_username}
         ${ssh_port}" >> ~/.ssh/config
