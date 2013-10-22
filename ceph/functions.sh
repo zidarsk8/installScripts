@@ -69,6 +69,7 @@ function add_ceph_user {
     echo -e "${ceph_password}\n${ceph_password}" | (passwd --stdin ${ceph_username})
     echo "${ceph_username} ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${ceph_username}
     sudo chmod 0440 /etc/sudoers.d/${ceph_username}
+    sed -i "s/Defaults\s*requiretty/# Defaults requiretty/g" /etc/sudoers
 
     echo "generating ssh key: $ssh_key_name"
     #### generate ssh keys and copy ssh config file for the new user ####
@@ -117,7 +118,7 @@ w
 
     /usr/sbin/xfs_admin -L $label "${disk}1"
 
-    echo "LABEL=/$label   $mountpoint   xfs defaults   1 2" >> /etc/fstab
+    # echo "${disk}1   $mountpoint   xfs defaults   1 2" >> /etc/fstab
     mount "${disk}1" "$mountpoint"
 
 }
