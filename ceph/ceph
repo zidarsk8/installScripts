@@ -64,7 +64,7 @@ format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} /xfs/osd${NODE_NUMBER}
 
 if [ ${NODE_NUMBER}  -eq 0 ]; then
 
-    passwd -h > /dev/null || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
+    sshpass -h > /dev/null || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
         echo "######## installing node: $i #######"

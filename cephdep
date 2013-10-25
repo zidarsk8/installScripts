@@ -2,19 +2,60 @@ mkdir my-cluster
 cd my-cluster
 
 
-ceph-deploy new ceph_node_1 
+ceph-deploy purgedata ceph_node_1 ceph_admin
+ceph-deploy forgetkeys
 
-ceph-deploy new ceph_admin
 
-ceph-deploy install ceph_node_1 
-
+ceph-deploy install ceph_node_1
 ceph-deploy install ceph_admin
 
-ceph-deploy mon create ceph_node_1
+ceph-deploy new ceph_admin ceph_node_1
 
 ceph-deploy mon create ceph_admin
 
-ceph-deploy gatherkeys ceph_node_1
+ceph-deploy gatherkeys ceph_admin
+
+
+
+ceph-deploy disk list ceph_admin ceph_node_1
+
+ceph-deploy disk zap ceph_admin:sdb
+ceph-deploy disk zap ceph_node_1:sdb
+
+ceph-deploy osd prepare ceph_admin:sdb ceph_node_1:sdb
+
+ceph-deploy osd activate ceph_admin:/dev/sdb1 ceph_node_1:/dev/sdb1
+
+
+
+
+ceph-deploy forgetkeys
+
+
+
+
+
+
+ceph --admin-daemon /var/run/ceph/ceph-mon.dec.asok mon_status
+
+sudo ceph --admin-daemon /var/run/ceph/ceph-mon.ceph_admin.asok mon_status
+
+
+
+
+
+
+
+
+
+admin only
+
+
+ceph-deploy install ceph_admin
+
+ceph-deploy new ceph_admin
+
+ceph-deploy mon create ceph_admin
 
 ceph-deploy gatherkeys ceph_admin
 
@@ -27,21 +68,5 @@ ceph-deploy disk zap ceph_admin:sdb
 ceph-deploy osd prepare ceph_admin:sdb
 
 ceph-deploy osd activate ceph_admin:/dev/sdb1
-
-
-
-ceph-deploy disk list ceph_node_1
-
-ceph-deploy disk zap ceph_node_1:sdb
-
-ceph-deploy osd prepare ceph_node_1:sdb
-ceph-deploy osd activate ceph_node_1:/dev/sdb1
-
-
-
-
-ceph-deploy osd prepare ceph_node_1:/dev/sdb1 ceph_admin:/dev/sdb1
-
-ceph-deploy osd activate ceph_node_1:/dev/sdb1 ceph_admin:/dev/sdb1
 
 
