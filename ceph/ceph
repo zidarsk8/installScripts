@@ -17,7 +17,6 @@ fi
 echo $(dirname $0)
 
 source $(dirname $0)/ceph.cfg
-source $(dirname $0)/network.cfg
 
 source $(dirname $0)/network.sh
 source $(dirname $0)/functions.sh
