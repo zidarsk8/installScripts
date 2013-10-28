@@ -11,9 +11,9 @@ ceph-deploy install ceph_admin
 
 ceph-deploy new ceph_admin ceph_node_1
 
-ceph-deploy mon create ceph_admin
+ceph-deploy mon create ceph_admin  ceph_node_1
 
-ceph-deploy gatherkeys ceph_admin
+ceph-deploy gatherkeys ceph_admin  ceph_node_1
 
 
 
@@ -59,9 +59,9 @@ ceph-deploy mon create ceph_admin
 
 ceph-deploy gatherkeys ceph_admin
 
+#sudo bash -c "ceph auth get-or-create client.admin mds 'allow' osd 'allow *' mon 'allow *' > /etc/ceph/keyring"
 
-
-ceph-deploy disk list ceph_admin
+#ceph-deploy disk list ceph_admin
 
 ceph-deploy disk zap ceph_admin:sdb
 

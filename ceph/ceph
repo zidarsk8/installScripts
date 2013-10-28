@@ -64,7 +64,7 @@ format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} /xfs/osd${NODE_NUMBER}
 
 if [ ${NODE_NUMBER}  -eq 0 ]; then
 
-    sshpass -h > /dev/null || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
+    sshpass -h > /dev/null 2>&1  || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
         echo "######## installing node: $i #######"
@@ -74,9 +74,14 @@ if [ ${NODE_NUMBER}  -eq 0 ]; then
     done
 
     sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+
+
+    for  (( i=1; i<$NODE_COUNT; i++ )); do
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
+    done
 fi
 
-
+reboot
 
 
 
