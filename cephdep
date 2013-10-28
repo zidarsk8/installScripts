@@ -70,3 +70,5 @@ ceph-deploy osd prepare ceph_admin:sdb
 ceph-deploy osd activate ceph_admin:/dev/sdb1
 
 
+
+

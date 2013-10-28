@@ -79,9 +79,9 @@ if [ ${NODE_NUMBER}  -eq 0 ]; then
     for  (( i=1; i<$NODE_COUNT; i++ )); do
         sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
     done
-fi
 
-reboot
+    reboot
+fi
 
 
 
