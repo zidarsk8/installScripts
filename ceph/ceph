@@ -55,7 +55,7 @@ rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/push
 
 
 
-format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} /xfs/osd${NODE_NUMBER} 
+format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
 
 
 
