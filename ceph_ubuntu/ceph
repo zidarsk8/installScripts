@@ -1,0 +1,71 @@
+#!/bin/bash
+
+
+#### check script arguments ####
+
+EXPECTED_ARGS=1
+E_BADARGS=65
+
+if [ $# -ne $EXPECTED_ARGS ]; then
+  echo "Usage: `basename $0` node_number"
+  echo "node_number: 0 - admin node, 1, 2, ... server nodes"
+  echo ""
+  exit $E_BADARGS
+fi
+
+DIRNAME=$(dirname $0)
+echo ${DIRNAME}
+
+source ${DIRNAME}/ceph.cfg
+
+source ${DIRNAME}/network.sh
+source ${DIRNAME}/functions.sh
+
+
+# generate hosts and ssh config file entries for ceph admin and ceph nodes 
+
+set_hostname ${NODES[${NODE_NUMBER}-name]}
+
+for (( i=0; i<$NODE_COUNT; i++ )); do
+    add_hosts_ssh_entry ${NODES[$i-ip]} ${NODES[$i-name]} $SSH_KEY_FILE $CEPH_USERNAME
+done
+    
+sleep 1
+
+#### generate a new user and update ssh keys ####
+
+add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+
+
+install_deb_online
+
+
+format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
+
+
+
+if [ ${NODE_NUMBER}  -eq 0 ]; then
+
+    sshpass -h > /dev/null 2>&1  || sudo apt-get install -y sshpass
+
+    for  (( i=1; i<$NODE_COUNT; i++ )); do
+        echo "######## installing node: $i (${NODES[$i-ip]}) #######"
+        sleep 1
+        sshpass -p "${NODES[$i-password]}" scp -o StrictHostKeyChecking=no -r ${DIRNAME} "${NODES[$i-username]}@${NODES[$i-ip]}:"
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "${DIRNAME}/ceph $i"
+    done
+
+    sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+
+
+    for  (( i=1; i<$NODE_COUNT; i++ )); do
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
+    done
+
+    reboot
+fi
+
+
+
+
+
