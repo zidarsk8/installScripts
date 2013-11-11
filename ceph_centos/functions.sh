@@ -22,7 +22,7 @@ function sync_ssh_keys {
 
     
     # generate known_hosts file for all nodes and the server
-    sudo -u ${ceph_username} bash -c "ssh-keyscan -H ceph_admin > ${ssh_folder}known_hosts"
+    sudo -u ${ceph_username} bash -c "ssh-keyscan -H ${NODES[0-name]} > ${ssh_folder}known_hosts"
  
 
     
@@ -65,16 +65,16 @@ function add_ceph_user {
 
     echo "generating new user: ${ceph_username}"
     #### create new user ####
-    sudo useradd -d /home/${ceph_username} -m ${ceph_username}
+    sudo useradd -d /home/${ceph_username} -m ${ceph_username} -s /bin/bash
     echo -e "${ceph_password}\n${ceph_password}" | (passwd --stdin ${ceph_username})
-    echo "${ceph_username} ALL = (root) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${ceph_username}
-    sudo chmod 0440 /etc/sudoers.d/${ceph_username}
+    echo "${ceph_username} ALL = (root) NOPASSWD:ALL" | tee /etc/sudoers.d/${ceph_username}
+    chmod 0440 /etc/sudoers.d/${ceph_username}
     sed -i "s/Defaults\s*requiretty/# Defaults requiretty/g" /etc/sudoers
 
     echo "generating ssh key: $ssh_key_name"
     #### generate ssh keys and copy ssh config file for the new user ####
     sudo -u ${ceph_username} -H mkdir -p /home/${ceph_username}/.ssh
-    sudo -u ${ceph_username} -H ssh-keygen -f /home/${ceph_username}/.ssh/${ssh_key_name} -t rsa -N ''
+    sudo -u ${ceph_username} -H ssh-keygen -qf /home/${ceph_username}/.ssh/${ssh_key_name} -t rsa -N ''
 
 
     cp ~/.ssh/config /home/${ceph_username}/.ssh/
@@ -82,12 +82,6 @@ function add_ceph_user {
     
 
 }
-
-
-
-
-
-
 
 
 
@@ -121,6 +115,31 @@ w
 
     echo "${disk}1   $mountpoint   xfs defaults   1 2" >> /etc/fstab
     mount "${disk}1" "$mountpoint"
+
+}
+
+
+
+
+
+
+
+function install_rpm {
+
+    echo "intalling packages"
+
+    #### import rpm keys to avoid key warnings ####
+
+    for f in $(dirname $0)/keys/*.key; do 
+      sudo rpm --import $f
+    done
+
+    #### install packages for basic ceph-deploy ####
+
+    rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
+    # rpm -Uvh $(dirname $0)/rpm/*.rpm
+
+
 
 }
 

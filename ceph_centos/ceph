@@ -13,13 +13,13 @@ if [ $# -ne $EXPECTED_ARGS ]; then
   exit $E_BADARGS
 fi
 
+DIRNAME=$(dirname $0)
+echo ${DIRNAME}
 
-echo $(dirname $0)
+source ${DIRNAME}/ceph.cfg
 
-source $(dirname $0)/ceph.cfg
-
-source $(dirname $0)/network.sh
-source $(dirname $0)/functions.sh
+source ${DIRNAME}/network.sh
+source ${DIRNAME}/functions.sh
 
 
 # generate hosts and ssh config file entries for ceph admin and ceph nodes 
@@ -32,27 +32,12 @@ done
     
 sleep 1
 
+#### generate a new user and update ssh keys ####
+
 add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 
 
-
-#### generate a new user and update ssh keys ####
-
-echo "intalling packages"
-
-#### import rpm keys to avoid key warnings ####
-
-for f in $(dirname $0)/keys/*.key; do 
-  sudo rpm --import $f
-done
-
-#### install packages for basic ceph-deploy ####
-
-rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
-# rpm -Uvh $(dirname $0)/rpm/*.rpm
-
-
-
+install_rpm
 
 
 format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
@@ -66,10 +51,10 @@ if [ ${NODE_NUMBER}  -eq 0 ]; then
     sshpass -h > /dev/null 2>&1  || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
-        echo "######## installing node: $i #######"
+        echo "######## installing node: $i (${NODES[$i-ip]}) #######"
         sleep 1
-        sshpass -p "${NODES[$i-password]}" scp -o StrictHostKeyChecking=no -r $(dirname $0) "${NODES[$i-username]}@${NODES[$i-ip]}:"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "./ceph/ceph $i"
+        sshpass -p "${NODES[$i-password]}" scp -o StrictHostKeyChecking=no -r ${DIRNAME} "${NODES[$i-username]}@${NODES[$i-ip]}:"
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "${DIRNAME}/ceph $i"
     done
 
     sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
