@@ -41,7 +41,7 @@ function set_hostname {
         return 1
     fi
     hostname $1
-    echo "${1}" /etc/hostname
+    echo "${1}" > /etc/hostname
 }
 
 

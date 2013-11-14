@@ -6,6 +6,11 @@
 EXPECTED_ARGS=1
 E_BADARGS=65
 
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
+
 if [ $# -ne $EXPECTED_ARGS ]; then
   echo "Usage: `basename $0` node_number"
   echo "node_number: 0 - admin node, 1, 2, ... server nodes"
@@ -37,14 +42,14 @@ sleep 1
 add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 
 
-install_deb_online
 
-
-format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
+# format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
 
 
 
 if [ ${NODE_NUMBER}  -eq 0 ]; then
+
+    install_deb_online
 
     sshpass -h > /dev/null 2>&1  || sudo apt-get install -y sshpass
 
