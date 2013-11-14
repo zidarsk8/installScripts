@@ -20,32 +20,33 @@ DIRNAME=$(dirname "$0")
 
 
 source "${DIRNAME}/ceph.cfg"
+source "${DIRNAME}/ceph-storage-cluster.cfg"
 
 
-CN=$1
+cluster_name=$1
 
 cd 
 
-mkdir "$CN"
-cd "$CN"
+mkdir "$cluster_name"
+cd "$cluster_name"
 
 
-ceph-deploy install ${NODES[@]}
+ceph-deploy install ${CLUSTER_NODES[@]}
 
-ceph-deploy new $MONITOR
+ceph-deploy new $CLUSTER_MONITOR
 
-ceph-deploy mon create $MONITOR
+ceph-deploy mon create $CLUSTER_MONITOR
 
-ceph-deploy gatherkeys $MONITOR
+ceph-deploy gatherkeys $CLUSTER_MONITOR
 
 
 osd_dev=()
 osd_block=()
 
-cnt=${#OSD[@]}
+cnt=${#CLUSTER_OSD[@]}
 for ((i=0;i<cnt;i++)); do
-    osd_dev[i]="${OSD[i]}${DEVICE}"
-    osd_block[i]="${OSD[i]}${DEVICE}1"
+    osd_dev[i]="${CLUSTER_OSD[i]}${CLUSTER_DEVICE}"
+    osd_block[i]="${CLUSTER_OSD[i]}${CLUSTER_DEVICE}1"
 done
 
 
