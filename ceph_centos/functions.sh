@@ -65,7 +65,7 @@ function add_ceph_user {
 
     echo "generating new user: ${ceph_username}"
     #### create new user ####
-    sudo useradd -d /home/${ceph_username} -m ${ceph_username} -s /bin/bash
+    sudo useradd -d /home/${ceph_username} -m ${ceph_username} -k ${DIRNAME}/skel -s /bin/bash
     echo -e "${ceph_password}\n${ceph_password}" | (passwd --stdin ${ceph_username})
     echo "${ceph_username} ALL = (root) NOPASSWD:ALL" | tee /etc/sudoers.d/${ceph_username}
     chmod 0440 /etc/sudoers.d/${ceph_username}
@@ -124,7 +124,7 @@ w
 
 
 
-function install_rpm {
+function install_ceph_deploy_rpm {
 
     echo "intalling packages"
 
@@ -136,9 +136,7 @@ function install_rpm {
 
     #### install packages for basic ceph-deploy ####
 
-    rpm -Uvh $(dirname $0)/rpm/ceph-deploy-1.2.7-0.noarch.rpm $(dirname $0)/rpm/pushy-0.5.3-1.noarch.rpm $(dirname $0)/rpm/python-argparse-1.2.1-2.el6.noarch.rpm $(dirname $0)/rpm/python-setuptools-0.6.10-3.el6.noarch.rpm
-    # rpm -Uvh $(dirname $0)/rpm/*.rpm
-
+    rpm -Uvh --replacepkgs $(dirname $0)/ceph-deploy-rpm/*.rpm
 
 
 }
