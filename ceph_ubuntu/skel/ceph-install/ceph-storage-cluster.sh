@@ -45,8 +45,8 @@ osd_block=()
 
 cnt=${#CLUSTER_OSD[@]}
 for ((i=0;i<cnt;i++)); do
-    osd_dev[i]="${CLUSTER_OSD[i]}${CLUSTER_DEVICE}"
-    osd_block[i]="${CLUSTER_OSD[i]}${CLUSTER_DEVICE}1"
+    osd_dev[$i]="${CLUSTER_OSD[$i]}:${CLUSTER_DEVICE}"
+    osd_block[$i]="${CLUSTER_OSD[$i]}:${CLUSTER_DEVICE}1"
 done
 
 
@@ -59,3 +59,8 @@ ceph-deploy osd prepare ${osd_dev[@]}
 ceph-deploy osd activate ${osd_block[@]}
 
 
+ceph-deploy admin ${CLUSTER_NODES[@]}
+
+
+
+ceph health

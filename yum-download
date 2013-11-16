@@ -1,0 +1,56 @@
+#!/bin/bash 
+
+
+yum install -y yum-downloadonly
+
+
+sudo rpm --import 'https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/release.asc'
+
+
+echo "[ceph-noarch]
+name=Ceph noarch packages
+baseurl=http://ceph.com/rpm-dumpling/el6/noarch
+enabled=1
+gpgcheck=1
+type=rpm-md
+gpgkey=https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/release.asc
+" > /etc/yum.repos.d/ceph.repo
+
+
+yum update 
+
+mkdir /tmp/ceph-deploy-rpm
+
+yum install ceph-deploy -y --downloadonly --downloaddir=/tmp/ceph-deploy-rpm
+
+
+
+
+wget http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+wget http://rpms.famillecollet.com/enterprise/remi-release-6.rpm
+sudo rpm -Uvh remi-release-6*.rpm epel-release-6*.rpm
+
+
+mkdir /tmp/ceph-rpm
+
+yum install snappy leveldb gdisk python-argparse gperftools-libs ceph -y --downloadonly --downloaddir=/tmp/ceph-rpm
+
+
+
+
+
+
+sshpass -p "a" ssh -p20022 root@loc "yum update -y"
+
+sshpass -p "a" ssh -p21022 root@loc "yum update -y"
+
+sshpass -p "a" ssh -p22022 root@loc "yum update -y"
+
+sshpass -p "a" ssh -p23022 root@loc "yum update -y"
+
+sshpass -p "a" ssh -p24022 root@loc "yum update -y"
+
+sshpass -p "a" ssh -p25022 root@loc "yum update -y"
+
+
+
