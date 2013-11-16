@@ -42,6 +42,10 @@ sudo ceph --admin-daemon /var/run/ceph/ceph-mon.ceph-admin.asok mon_status
 
 
 
+> scp /etc/ceph/ceph.conf         client-1:/etc/ceph
+> scp /etc/ceph/keyring.bin       client-1:/etc/ceph
+> scp /etc/ceph/ceph.conf         client-2:/etc/ceph
+> scp /etc/ceph/keyring.bin       client-2:/etc/ceph	
 
 
 

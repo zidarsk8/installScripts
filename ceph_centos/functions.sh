@@ -91,7 +91,7 @@ function format_xfs_drive {
     label=cephxfs
     disk=$1
 
-    rpm -Uvh $(dirname $0)/rpm/xfsdump-3.0.4-3.el6.x86_64.rpm $(dirname $0)/rpm/xfsprogs-3.1.1-10.el6_4.1.x86_64.rpm
+    rpm -Uvh $(dirname $0)/extra-rpm/xfsdump-3.0.4-3.el6.x86_64.rpm $(dirname $0)/rpm/xfsprogs-3.1.1-10.el6_4.1.x86_64.rpm
 
     echo "o
 c
@@ -122,11 +122,9 @@ w
 
 
 
-
-
 function install_ceph_deploy_rpm {
 
-    echo "intalling packages"
+    echo "intalling packages: ceph_deploy_rpm"
 
     #### import rpm keys to avoid key warnings ####
 
@@ -138,6 +136,51 @@ function install_ceph_deploy_rpm {
 
     rpm -Uvh --replacepkgs $(dirname $0)/ceph-deploy-rpm/*.rpm
 
+}
+
+function install_ceph_rpm {
+
+    echo "intalling packages: ceph_rpm"
+
+    #### import rpm keys to avoid key warnings ####
+
+    for f in $(dirname $0)/keys/*.key; do 
+      sudo rpm --import $f
+    done
+
+    #### install packages for basic ceph-deploy ####
+
+    rpm -Uvh --replacepkgs $(dirname $0)/ceph-rpm/*.rpm
+
 
 }
 
+function install_extra_rpm {
+
+    echo "intalling packages: extra_rpm"
+
+    #### install packages for basic ceph-deploy ####
+
+    rpm -Uvh --replacepkgs $(dirname $0)/extra-rpm/*.rpm
+
+}
+
+
+
+
+function dissable_iptables {
+
+    for  (( i=0; i<$NODE_COUNT; i++ )); do
+
+        # should replace this with a valid iptables config
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service iptables save"
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service iptables stop"
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "chkconfig iptables off"
+
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service ip6tables save"
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service ip6tables stop"
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "chkconfig ip6tables off"
+
+    done
+
+}

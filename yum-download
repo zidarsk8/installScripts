@@ -40,19 +40,6 @@ yum install snappy leveldb gdisk python-argparse gperftools-libs ceph -y --downl
 
 
 
-sshpass -p "a" ssh -p20022 root@loc "yum update -y"
-
-sshpass -p "a" ssh -p21022 root@loc "yum update -y"
-
-sshpass -p "a" ssh -p22022 root@loc "yum update -y"
-
-sshpass -p "a" ssh -p23022 root@loc "yum update -y"
-
-sshpass -p "a" ssh -p24022 root@loc "yum update -y"
-
-sshpass -p "a" ssh -p25022 root@loc "yum update -y"
-
-
 
 for ((i=0;i<=5;i++)); do
     sshpass -p "a" ssh -p 2${i}022 root@loc "service iptables save"
@@ -63,5 +50,13 @@ for ((i=0;i<=5;i++)); do
     sshpass -p "a" ssh -p 2${i}022 root@loc "service ip6tables stop"
     sshpass -p "a" ssh -p 2${i}022 root@loc "chkconfig ip6tables off"
 done
+
+
+
+for ((i=0;i<=5;i++)); do
+    sshpass -p "a" ssh -p 2${i}022 root@loc "echo \"\" > /etc/resolv.conf"
+done
+
+
 
 

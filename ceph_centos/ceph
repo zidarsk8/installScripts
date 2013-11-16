@@ -41,12 +41,15 @@ add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 # format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
 
 
+# install_ceph_rpm
+# install_extra_rpm
+
 
 if [ ${NODE_NUMBER}  -eq 0 ]; then
 
-	install_ceph_deploy_rpm
+    install_ceph_deploy_rpm
 
-    sshpass -h > /dev/null 2>&1  || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
+    sshpass -h > /dev/null 2>&1  || rpm -Uvh $(dirname $0)/extra-rpm/sshpass-1.05-1.el6.x86_64.rpm
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
         echo "######## installing node: $i (${NODES[$i-ip]}) #######"
@@ -57,18 +60,9 @@ if [ ${NODE_NUMBER}  -eq 0 ]; then
 
     sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 
+    dissable_iptables
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
-
-        # should replace this with a valid iptables config
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service iptables save"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service iptables stop"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "chkconfig iptables off"
-
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service ip6tables save"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service ip6tables stop"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "chkconfig ip6tables off"
-
         sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
     done
 

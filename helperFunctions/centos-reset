@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for ((i=0;i<=5;i++)); do
+    node=centos-node${i}
+    VBoxManage list runningvms | grep $node && VBoxManage controlvm $node poweroff 
+    VBoxManage snapshot $node restore $1
+
+done
