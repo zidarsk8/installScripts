@@ -37,16 +37,14 @@ sleep 1
 add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 
 
-install_rpm
 
-
-format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
-
-
+# format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
 
 
 
 if [ ${NODE_NUMBER}  -eq 0 ]; then
+
+	install_ceph_deploy_rpm
 
     sshpass -h > /dev/null 2>&1  || rpm -Uvh $(dirname $0)/rpm/sshpass-1.05-1.el6.x86_64.rpm
 
