@@ -1,0 +1,1 @@
+skel/ceph-install/ceph-storage-cluster.sh

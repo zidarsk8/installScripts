@@ -25,12 +25,12 @@ ssh -t ceph-node2 "sudo reboot"
 
 ssh -t ceph-node3 "sudo reboot"
 
-ceph-deploy osd activate ceph-node2:/dev/sdb ceph-node3:/dev/sdb
+ceph-deploy osd activate ceph-node2:/dev/sdb1 ceph-node3:/dev/sdb1
 
 
 
 
-ceph-deploy admin admin-node ceph-node1 ceph-node2 ceph-node3
+ceph-deploy admin ceph-admin ceph-node1 ceph-node2 ceph-node3
 
 
 
