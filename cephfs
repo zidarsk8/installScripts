@@ -1,0 +1,4 @@
+#!/bin/bash
+
+
+sed '2!d' ceph.client.admin.keyring | sed 's/\skey = //g' > admin.secret

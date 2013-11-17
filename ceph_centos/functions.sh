@@ -168,6 +168,19 @@ function install_extra_rpm {
 }
 
 
+function install_kernel_lt_rpm {
+
+    echo "intalling packages: kernel_lt"
+
+    #### install packages for basic ceph-deploy ####
+
+    rpm -Uvh --replacepkgs $(dirname $0)/kernel-lt-rpm/*.rpm
+
+    echo "updatign grub conf "
+    sed -i 's/default=1/default=0/g' /boot/grub/grub.conf
+}
+
+
 
 
 function dissable_iptables {

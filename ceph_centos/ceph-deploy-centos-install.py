@@ -7,7 +7,7 @@ def install(distro, version_kind, version, adjust_repos):
     machine = distro.machine_type
 
     # Even before EPEL, make sure we have `wget`
-    pkg_managers.yum(distro.conn, 'wget')
+    # pkg_managers.yum(distro.conn, 'wget')
 
     # Get EPEL installed before we continue:
     if adjust_repos:
@@ -24,7 +24,7 @@ def install(distro, version_kind, version, adjust_repos):
                 'rpm',
                 '--import',
                 '/root/ceph_centos/keys/ceph_release.key'
-                #"https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/{key}.asc".format(key=key)
+                #"https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/{key}.asc".format(key=key)    # replaced with offline resource
             ]
         )
 
@@ -48,7 +48,7 @@ def install(distro, version_kind, version, adjust_repos):
                 '-Uvh',
                 '--replacepkgs',
                 '/root/ceph_centos/extra-rpm/ceph-release-1-0.el6.noarch.rpm'
-                #'{url}noarch/ceph-release-1-0.el6.noarch.rpm'.format(url=url),
+                #'{url}noarch/ceph-release-1-0.el6.noarch.rpm'.format(url=url),    # replaced with offline resource
             ],
         )
 
@@ -78,7 +78,7 @@ def install_epel(distro):
     if distro.name.lower() in ['centos', 'scientific']:
         distro.conn.logger.info('adding EPEL repository')
         if float(distro.release) >= 6:
-            # process.run(
+            # process.run(    # replaced with offline resource
             #     distro.conn,
             #     ['wget', 'http://dl.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm'],
             # )
