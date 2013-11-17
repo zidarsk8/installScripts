@@ -135,7 +135,9 @@ function install_ceph_deploy_rpm {
     #### install packages for basic ceph-deploy ####
 
     rpm -Uvh --replacepkgs $(dirname $0)/ceph-deploy-rpm/*.rpm
-
+    
+    mv /usr/lib/python2.6/site-packages/ceph_deploy/hosts/centos/install.py{,.orig}
+    cp ${DIRNAME}/ceph-deploy-centos-install.py /usr/lib/python2.6/site-packages/ceph_deploy/hosts/centos/install.py
 }
 
 function install_ceph_rpm {
