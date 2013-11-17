@@ -1,0 +1,1 @@
+skel/ceph-install/install.py
