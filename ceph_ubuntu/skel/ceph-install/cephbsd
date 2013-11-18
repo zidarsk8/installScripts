@@ -1,0 +1,36 @@
+#!/bin/bash
+
+DIRNAME=$(dirname "$0")
+
+RBDNAME=cephrbd
+
+
+source "${DIRNAME}/ceph.cfg"
+source "${DIRNAME}/ceph-storage-cluster.cfg"
+
+
+function error_msg {
+	echo "$1"
+	exit 1
+}
+
+
+SIZE=100 # block storage size in gb
+
+
+modprobe rbd || error_msg "Check kernel version. It should be > 3.4"
+
+
+
+
+rbd create ${RBDNAME} --size $(( $SIZE * 1024 )) -m $CLUSTER_MONITOR
+
+sudo rbd map ${RBDNAME} --pool rbd --name client.admin -m $CLUSTER_MONITOR
+
+sudo mkfs.ext4 -m0 /dev/rbd/rbd/${RBDNAME}
+
+sudo mkdir /mnt/ceph-block-device
+sudo mount /dev/rbd/rbd/${RBDNAME} /mnt/ceph-block-device
+
+
+
