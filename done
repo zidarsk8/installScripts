@@ -21,3 +21,22 @@ sshpass -p "cephpass" ssh -tp20022 ceph@loc
 ./ceph-install/ceph-storage-cluster.sh clustername
 
 
+
+
+
+
+
+ubuntu-reset net && ubuntu-start
+
+
+sleep 5
+
+sshpass -p "a" scp -rP30022 /home/zidar/programming/installScripts/ceph_centos/ root@loc: && sshpass -p "a" ssh -tp30022 root@loc "./ceph_centos/ceph"
+
+
+
+sshpass -p "cephpass" ssh -tp30022 ceph@loc 
+
+./ceph-install/ceph-storage-cluster.sh clustername
+
+
