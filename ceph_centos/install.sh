@@ -1,14 +1,16 @@
+function import_rpm_keys {
 
+    for f in $(dirname $0)/keys/*.key; do 
+      sudo rpm --import $f
+    done
+
+}
 
 function install_ceph_deploy_rpm {
 
     $VERBOSE && echo "intalling packages: ceph_deploy_rpm"
 
     #### import rpm keys to avoid key warnings ####
-
-    for f in $(dirname $0)/keys/*.key; do 
-      sudo rpm --import $f
-    done
 
     #### install packages for basic ceph-deploy ####
 
@@ -24,12 +26,6 @@ function install_ceph_rpm {
 
     $VERBOSE && echo "intalling packages: ceph_rpm"
 
-    #### import rpm keys to avoid key warnings ####
-
-    for f in $(dirname $0)/keys/*.key; do 
-      sudo rpm --import $f
-    done
-
     #### install packages for basic ceph-deploy ####
 
     rpm -Uvh --replacepkgs $(dirname $0)/ceph-rpm/*.rpm
@@ -44,7 +40,7 @@ function install_extra_sshpass_rpm {
 
     #### install packages for basic ceph-deploy ####
 
-    sshpass -h > /dev/null 2>&1  || rpm -Uvh --replacepkgs ${DIRNAME}/extra-rpm/sshpass-1.05-1.el6.x86_64.rpm
+    rpm -Uvh --replacepkgs ${DIRNAME}/extra-rpm/sshpass-1.05-1.el6.x86_64.rpm
 
 }
 

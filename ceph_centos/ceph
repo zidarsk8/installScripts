@@ -14,6 +14,7 @@ OPTIONS:
    -n      Node number for single install
    -s      Synchronize ssh keys
    -r      Setup remote node
+   -f      Format node disk to xfs
    -v      Verbose
 EOF
 }
@@ -41,10 +42,6 @@ do
              usage
              exit
              ;;
-         n)  
-             NODE_NUMBER=$OPTARG
-             GROUP_INSTALL=false
-             ;;
          r)
              push_to_single_node $OPTARG
              exit 0
@@ -52,6 +49,10 @@ do
          s)
              sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
              exit
+             ;;
+         n)  
+             NODE_NUMBER=$OPTARG
+             GROUP_INSTALL=false
              ;;
          q)
              QUIET="-q"
@@ -73,19 +74,6 @@ setup_single_node
 [ "$NODE_NUMBER" -eq 0 ] && install_ceph_deploy_rpm
 
 [ "$NODE_NUMBER" -eq 0 ] && $GROUP_INSTALL && push_to_nodes
-
-
-
-
-# format_xfs_drive ${NODES[${NODE_NUMBER}-disk]} ${MOUNTPOINT} 
-
-
-# install_ceph_rpm
-# install_extra_rpm
-
-# install_kernel_lt_rpm
-
-
 
 
 

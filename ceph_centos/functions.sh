@@ -90,38 +90,6 @@ function add_ceph_user {
 
 
 
-function ssh_dissable_iptables {
-
-    for  (( i=0; i<$NODE_COUNT; i++ )); do
-
-        # should replace this with a valid iptables config
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service iptables save"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service iptables stop"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "chkconfig iptables off"
-
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service ip6tables save"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "service ip6tables stop"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "chkconfig ip6tables off"
-
-    done
-
-}
-
-
-function dissable_iptables {
-
-    # should replace this with a valid iptables config
-    service iptables save
-    service iptables stop
-    chkconfig iptables off
-
-    service ip6tables save
-    service ip6tables stop
-    chkconfig ip6tables off
-
-}
-
-
 function reboot_all {
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
@@ -145,10 +113,13 @@ function setup_single_node {
     add_hosts_ssh_entries
    
     add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+    
+    import_rpm_keys
 
     $FORMAT_DRIVE && format_xfs_drive ${NODES[${NODE_NUMBER}-disk]}
 
-    dissable_iptables
+    # dissable_iptables
+    add_iptables_rules ${NODES[${NODE_NUMBER}-ip]} ${NODES[${NODE_NUMBER}-netmask]}
     
 }
 

@@ -8,7 +8,7 @@ sleep 5
 
 for ((i=0;i<=5;i++)); do     sshpass -p "a" ssh -p 2${i}022 root@loc "echo \"\" > /etc/resolv.conf"; done
 
-sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph_centos/ root@loc: && sshpass -p "a" ssh -tp20022 root@loc "./ceph_centos/ceph 0"
+sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph_centos/ root@loc: && sshpass -p "a" ssh -tp20022 root@loc "./ceph_centos/ceph"
 
 
 
