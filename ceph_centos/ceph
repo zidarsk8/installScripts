@@ -1,27 +1,79 @@
 #!/bin/bash
+# Argument = -n nodeNumber | -r remoteNodeNumber | -s 
+
+
+
+function usage {
+cat << EOF
+usage: $0 options
+
+This script run the test1 or test2 over a machine.
+
+OPTIONS:
+   -h      Show this message
+   -n      Node number for single install
+   -s      Synchronize ssh keys
+   -r      Setup remote node
+   -v      Verbose
+EOF
+}
 
 
 DIRNAME=$(dirname $0)
 
 source ${DIRNAME}/ceph.cfg
 
+source ${DIRNAME}/install.sh
 source ${DIRNAME}/network.sh
 source ${DIRNAME}/functions.sh
 
-source ${DIRNAME}/argparse.sh
 
-# generate hosts and ssh config file entries for ceph admin and ceph nodes 
 
-set_hostname ${NODES[${NODE_NUMBER}-name]}
+NODE_NUMBER=0
+GROUP_INSTALL=true
+QUIET=
+FORMAT_DRIVE=false
 
-for (( i=0; i<$NODE_COUNT; i++ )); do
-    add_hosts_ssh_entry ${NODES[$i-ip]} ${NODES[$i-name]} $SSH_KEY_FILE $CEPH_USERNAME
+while getopts “n:r:sqfh” OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit
+             ;;
+         n)  
+             NODE_NUMBER=$OPTARG
+             GROUP_INSTALL=false
+             ;;
+         r)
+             push_to_single_node $OPTARG
+             exit 0
+             ;;
+         s)
+             sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+             exit
+             ;;
+         q)
+             QUIET="-q"
+             ;;
+         q)
+             FORMAT_DRIVE=true
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
 done
 
 
-#### generate a new user and update ssh keys ####
+setup_single_node
 
-add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+
+[ "$NODE_NUMBER" -eq 0 ] && install_ceph_deploy_rpm
+
+[ "$NODE_NUMBER" -eq 0 ] && $GROUP_INSTALL && push_to_nodes
+
 
 
 
@@ -33,28 +85,9 @@ add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 
 # install_kernel_lt_rpm
 
-function push_to_nodes {
 
-    sshpass -h > /dev/null 2>&1  || rpm -Uvh ${DIRNAME}/extra-rpm/sshpass-1.05-1.el6.x86_64.rpm
 
-    for  (( i=1; i<$NODE_COUNT; i++ )); do
-        echo "######## installing node: $i (${NODES[$i-ip]}) #######"
-        sleep 1
-        sshpass -p "${NODES[$i-password]}" scp -o StrictHostKeyChecking=no -r ${DIRNAME} "${NODES[$i-username]}@${NODES[$i-ip]}:"
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "${DIRNAME}/ceph $i"
-    done
 
-    sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
-
-    # ssh_dissable_iptables
-
-    for  (( i=1; i<$NODE_COUNT; i++ )); do
-        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
-    done
-
-    reboot
-
-}
 
 
 

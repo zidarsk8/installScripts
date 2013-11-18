@@ -9,7 +9,7 @@ This script run the test1 or test2 over a machine.
 
 OPTIONS:
    -h      Show this message
-   -n      Node number
+   -n      Node number for single install
    -s      Synchronize ssh keys
    -r      Setup remote node
    -v      Verbose
@@ -18,8 +18,7 @@ EOF
 
 NODE_NUMBER=0
 GROUP_INSTALL=true
-VERBOSE=false
-QUIET=false
+QUIET=
 
 while getopts “h:n:s:r:v” OPTION
 do
@@ -40,11 +39,8 @@ do
              sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
              exit
              ;;
-         v)
-             VERBOSE=true
-             ;;
          q)
-             QUIET=true
+             QUIET="-q"
              ;;
          ?)
              usage

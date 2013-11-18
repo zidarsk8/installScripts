@@ -2,6 +2,8 @@
 
 function sync_ssh_keys { 
 
+    install_extra_sshpass_rpm 
+
     if [ "$#" -lt 2 ]; then
         echo "this should only be run on the server node"
         echo "usage: sync_ssh_keys 'ceph_username' 'ssh_key_name'"
@@ -13,7 +15,7 @@ function sync_ssh_keys {
     local ssh_key_name=$3
     local ssh_folder="/home/${ceph_username}/.ssh/"
 
-    $VERBOSE && echo "syncronising public keys"        
+    echo "syncronising public keys"        
 
     # copy public keys from all nodes and servers into ~/.ssh/node_keys and generate authorized keys file
 
@@ -59,11 +61,11 @@ function add_ceph_user {
     local ssh_key_name=$3
 
     if id -u ${ceph_username} >/dev/null 2>&1; then
-        $VERBOSE && echo "WARNING: user \"${ceph_username}\" already exists"
+        echo "WARNING: user \"${ceph_username}\" already exists"
         return 1  
     fi
 
-    $VERBOSE && echo "generating new user: ${ceph_username}"
+    echo "generating new user: ${ceph_username}"
     #### create new user ####
     sudo useradd -d /home/${ceph_username} -m ${ceph_username} -k ${DIRNAME}/skel -s /bin/bash
     echo -e "${ceph_password}\n${ceph_password}" | (passwd --stdin ${ceph_username})
@@ -71,7 +73,7 @@ function add_ceph_user {
     chmod 0440 /etc/sudoers.d/${ceph_username}
     sed -i "s/Defaults\s*requiretty/# Defaults requiretty/g" /etc/sudoers
 
-    $VERBOSE && echo "generating ssh key: $ssh_key_name"
+    echo "generating ssh key: $ssh_key_name"
     #### generate ssh keys and copy ssh config file for the new user ####
     sudo -u ${ceph_username} -H mkdir -p /home/${ceph_username}/.ssh
     sudo -u ${ceph_username} -H ssh-keygen -qf /home/${ceph_username}/.ssh/${ssh_key_name} -t rsa -N ''
@@ -84,101 +86,6 @@ function add_ceph_user {
 }
 
 
-
-
-function format_xfs_drive {
-
-    label=cephxfs
-    disk=$1
-
-    rpm -Uvh $(dirname $0)/extra-rpm/xfsdump-3.0.4-3.el6.x86_64.rpm $(dirname $0)/rpm/xfsprogs-3.1.1-10.el6_4.1.x86_64.rpm
-
-    echo "o
-c
-u
-n
-p
-1
-
-
-p
-w
-" | fdisk ${disk}
-
-    mkfs.xfs "${disk}1"
-
-    /usr/sbin/xfs_admin -L $label "${disk}1"
-
-    mountpoint=$2
-
-    mkdir -p ${mountpoint}
-
-    echo "${disk}1   $mountpoint   xfs defaults   1 2" >> /etc/fstab
-    mount "${disk}1" "$mountpoint"
-
-}
-
-
-
-
-
-function install_ceph_deploy_rpm {
-
-    $VERBOSE && echo "intalling packages: ceph_deploy_rpm"
-
-    #### import rpm keys to avoid key warnings ####
-
-    for f in $(dirname $0)/keys/*.key; do 
-      sudo rpm --import $f
-    done
-
-    #### install packages for basic ceph-deploy ####
-
-    rpm -Uvh --replacepkgs $(dirname $0)/ceph-deploy-rpm/*.rpm
-    
-    mv /usr/lib/python2.6/site-packages/ceph_deploy/hosts/centos/install.py{,.orig}
-    cp ${DIRNAME}/ceph-deploy-centos-install.py /usr/lib/python2.6/site-packages/ceph_deploy/hosts/centos/install.py
-}
-
-function install_ceph_rpm {
-
-    $VERBOSE && echo "intalling packages: ceph_rpm"
-
-    #### import rpm keys to avoid key warnings ####
-
-    for f in $(dirname $0)/keys/*.key; do 
-      sudo rpm --import $f
-    done
-
-    #### install packages for basic ceph-deploy ####
-
-    rpm -Uvh --replacepkgs $(dirname $0)/ceph-rpm/*.rpm
-
-
-}
-
-function install_extra_rpm {
-
-    $VERBOSE && echo "intalling packages: extra_rpm"
-
-    #### install packages for basic ceph-deploy ####
-
-    rpm -Uvh --replacepkgs $(dirname $0)/extra-rpm/*.rpm
-
-}
-
-
-function install_kernel_lt_rpm {
-
-    $VERBOSE && echo "intalling packages: kernel_lt"
-
-    #### install packages for basic ceph-deploy ####
-
-    rpm -Uvh --replacepkgs $(dirname $0)/kernel-lt-rpm/*.rpm
-
-    $VERBOSE && echo "updatign grub conf "
-    sed -i 's/default=1/default=0/g' /boot/grub/grub.conf
-}
 
 
 
@@ -213,3 +120,101 @@ function dissable_iptables {
     chkconfig ip6tables off
 
 }
+
+
+function reboot_all {
+
+    for  (( i=1; i<$NODE_COUNT; i++ )); do
+        sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
+    done
+
+    reboot
+
+}
+
+
+function setup_single_node {
+
+    if [ -z "$NODE_NUMBER" ] && [ "$NODE_NUMBER" -lt "$NODE_COUNT" ] && [ "$NODE_NUMBER" -ge 0 ]; then
+        echo "setup single node error: missing global var 'NODE_NUMBER'"
+        return 1
+    fi
+
+    set_hostname ${NODES[${NODE_NUMBER}-name]}
+
+    add_hosts_ssh_entries
+   
+    add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+
+    $FORMAT_DRIVE && format_xfs_drive ${NODES[${NODE_NUMBER}-disk]}
+
+    dissable_iptables
+    
+}
+
+
+function push_to_single_node {
+
+    if [ "$#" -lt 1 ]; then
+        echo "usage: push_to_single_node 'node-number'"
+        return 1
+    fi
+
+    local node=$1
+
+    install_extra_sshpass_rpm
+
+    echo "######## installing node: ${node} (${NODES[${node}-ip]}) #######"
+    sshpass -p "${NODES[${node}-password]}" scp -o StrictHostKeyChecking=no -r ${DIRNAME} "${NODES[${node}-username]}@${NODES[${node}-ip]}:"
+    sshpass -p "${NODES[${node}-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[${node}-username]}@${NODES[${node}-ip]} "${DIRNAME}/ceph -n ${node}"
+}
+
+
+function push_to_nodes {
+
+    for  (( i=1; i<$NODE_COUNT; i++ )); do
+        push_to_single_node $i
+    done
+
+    sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+
+    reboot_all
+
+}
+
+
+
+function format_xfs_drive {
+
+    label=cephxfs
+    disk=$1
+
+    rpm -Uvh $(dirname $0)/extra-rpm/xfsdump-3.0.4-3.el6.x86_64.rpm $(dirname $0)/rpm/xfsprogs-3.1.1-10.el6_4.1.x86_64.rpm
+
+    echo "o
+c
+u
+n
+p
+1
+
+
+p
+w
+" | fdisk ${disk}
+
+    mkfs.xfs "${disk}1"
+
+    /usr/sbin/xfs_admin -L $label "${disk}1"
+
+    mountpoint=$2
+
+    mkdir -p ${mountpoint}
+
+    #echo "${disk}1   $mountpoint   xfs defaults   1 2" >> /etc/fstab
+    mount "${disk}1" "$mountpoint"
+
+}
+
+
+

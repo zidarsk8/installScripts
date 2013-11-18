@@ -31,8 +31,17 @@ function add_hosts_ssh_entry {
         User ${ssh_username}
         ${ssh_port}" >> ~/.ssh/config
     fi
+
 }
 
+
+function add_hosts_ssh_entries {
+
+    for (( i=0; i<$NODE_COUNT; i++ )); do
+        add_hosts_ssh_entry ${NODES[$i-ip]} ${NODES[$i-name]} $SSH_KEY_FILE $CEPH_USERNAME
+    done
+
+}
 
 
 function set_hostname {
