@@ -1,26 +1,14 @@
 #!/bin/bash
 
 
-#### check script arguments ####
-
-EXPECTED_ARGS=1
-E_BADARGS=65
-
-if [ $# -ne $EXPECTED_ARGS ]; then
-  echo "Usage: `basename $0` node_number"
-  echo "node_number: 0 - admin node, 1, 2, ... server nodes"
-  echo ""
-  exit $E_BADARGS
-fi
-
 DIRNAME=$(dirname $0)
-echo ${DIRNAME}
 
 source ${DIRNAME}/ceph.cfg
 
 source ${DIRNAME}/network.sh
 source ${DIRNAME}/functions.sh
 
+source ${DIRNAME}/argparse.sh
 
 # generate hosts and ssh config file entries for ceph admin and ceph nodes 
 
@@ -29,8 +17,7 @@ set_hostname ${NODES[${NODE_NUMBER}-name]}
 for (( i=0; i<$NODE_COUNT; i++ )); do
     add_hosts_ssh_entry ${NODES[$i-ip]} ${NODES[$i-name]} $SSH_KEY_FILE $CEPH_USERNAME
 done
-    
-sleep 1
+
 
 #### generate a new user and update ssh keys ####
 
@@ -44,11 +31,9 @@ add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 # install_ceph_rpm
 # install_extra_rpm
 
-install_kernel_lt_rpm
+# install_kernel_lt_rpm
 
-if [ ${NODE_NUMBER}  -eq 0 ]; then
-
-    install_ceph_deploy_rpm
+function push_to_nodes {
 
     sshpass -h > /dev/null 2>&1  || rpm -Uvh ${DIRNAME}/extra-rpm/sshpass-1.05-1.el6.x86_64.rpm
 
@@ -61,14 +46,15 @@ if [ ${NODE_NUMBER}  -eq 0 ]; then
 
     sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
 
-    dissable_iptables
+    # ssh_dissable_iptables
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
         sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
     done
 
     reboot
-fi
+
+}
 
 
 

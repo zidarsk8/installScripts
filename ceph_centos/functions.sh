@@ -13,7 +13,7 @@ function sync_ssh_keys {
     local ssh_key_name=$3
     local ssh_folder="/home/${ceph_username}/.ssh/"
 
-    echo "syncronising public keys"        
+    $VERBOSE && echo "syncronising public keys"        
 
     # copy public keys from all nodes and servers into ~/.ssh/node_keys and generate authorized keys file
 
@@ -59,11 +59,11 @@ function add_ceph_user {
     local ssh_key_name=$3
 
     if id -u ${ceph_username} >/dev/null 2>&1; then
-        echo "WARNING: user \"${ceph_username}\" already exists"
+        $VERBOSE && echo "WARNING: user \"${ceph_username}\" already exists"
         return 1  
     fi
 
-    echo "generating new user: ${ceph_username}"
+    $VERBOSE && echo "generating new user: ${ceph_username}"
     #### create new user ####
     sudo useradd -d /home/${ceph_username} -m ${ceph_username} -k ${DIRNAME}/skel -s /bin/bash
     echo -e "${ceph_password}\n${ceph_password}" | (passwd --stdin ${ceph_username})
@@ -71,7 +71,7 @@ function add_ceph_user {
     chmod 0440 /etc/sudoers.d/${ceph_username}
     sed -i "s/Defaults\s*requiretty/# Defaults requiretty/g" /etc/sudoers
 
-    echo "generating ssh key: $ssh_key_name"
+    $VERBOSE && echo "generating ssh key: $ssh_key_name"
     #### generate ssh keys and copy ssh config file for the new user ####
     sudo -u ${ceph_username} -H mkdir -p /home/${ceph_username}/.ssh
     sudo -u ${ceph_username} -H ssh-keygen -qf /home/${ceph_username}/.ssh/${ssh_key_name} -t rsa -N ''
@@ -124,7 +124,7 @@ w
 
 function install_ceph_deploy_rpm {
 
-    echo "intalling packages: ceph_deploy_rpm"
+    $VERBOSE && echo "intalling packages: ceph_deploy_rpm"
 
     #### import rpm keys to avoid key warnings ####
 
@@ -142,7 +142,7 @@ function install_ceph_deploy_rpm {
 
 function install_ceph_rpm {
 
-    echo "intalling packages: ceph_rpm"
+    $VERBOSE && echo "intalling packages: ceph_rpm"
 
     #### import rpm keys to avoid key warnings ####
 
@@ -159,7 +159,7 @@ function install_ceph_rpm {
 
 function install_extra_rpm {
 
-    echo "intalling packages: extra_rpm"
+    $VERBOSE && echo "intalling packages: extra_rpm"
 
     #### install packages for basic ceph-deploy ####
 
@@ -170,20 +170,20 @@ function install_extra_rpm {
 
 function install_kernel_lt_rpm {
 
-    echo "intalling packages: kernel_lt"
+    $VERBOSE && echo "intalling packages: kernel_lt"
 
     #### install packages for basic ceph-deploy ####
 
     rpm -Uvh --replacepkgs $(dirname $0)/kernel-lt-rpm/*.rpm
 
-    echo "updatign grub conf "
+    $VERBOSE && echo "updatign grub conf "
     sed -i 's/default=1/default=0/g' /boot/grub/grub.conf
 }
 
 
 
 
-function dissable_iptables {
+function ssh_dissable_iptables {
 
     for  (( i=0; i<$NODE_COUNT; i++ )); do
 
@@ -197,5 +197,19 @@ function dissable_iptables {
         sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "chkconfig ip6tables off"
 
     done
+
+}
+
+
+function dissable_iptables {
+
+    # should replace this with a valid iptables config
+    service iptables save
+    service iptables stop
+    chkconfig iptables off
+
+    service ip6tables save
+    service ip6tables stop
+    chkconfig ip6tables off
 
 }
