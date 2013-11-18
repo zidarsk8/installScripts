@@ -51,7 +51,13 @@ function set_hostname {
     fi
     local hostname=$1
     hostname $hostname
-    sed -i "s/HOSTNAME=.*/HOSTNAME=${hostname}/g" /etc/sysconfig/network
+
+
+    if [ $(lsb_release -si) == "CentOS" ]; then
+        sed -i "s/HOSTNAME=.*/HOSTNAME=${hostname}/g" /etc/sysconfig/network
+    else
+        echo "${hostname}" > /etc/hostname
+    fi
 }
 
 

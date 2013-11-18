@@ -68,7 +68,15 @@ function add_ceph_user {
     echo "generating new user: ${ceph_username}"
     #### create new user ####
     sudo useradd -d /home/${ceph_username} -m ${ceph_username} -k ${DIRNAME}/skel -s /bin/bash
-    echo -e "${ceph_password}\n${ceph_password}" | (passwd --stdin ${ceph_username})
+    
+
+    if [ $(lsb_release -si) == "CentOS" ]; then
+        echo -e "${ceph_password}\n${ceph_password}" | (passwd --stdin ${ceph_username})
+    else
+        echo -e "${ceph_password}\n${ceph_password}" | passwd  ${ceph_username}
+    fi
+
+
     echo "${ceph_username} ALL = (root) NOPASSWD:ALL" | tee /etc/sudoers.d/${ceph_username}
     chmod 0440 /etc/sudoers.d/${ceph_username}
     sed -i "s/Defaults\s*requiretty/# Defaults requiretty/g" /etc/sudoers
@@ -102,25 +110,25 @@ function reboot_all {
 
 
 function setup_single_node {
-
+    
     if [ -z "$NODE_NUMBER" ] && [ "$NODE_NUMBER" -lt "$NODE_COUNT" ] && [ "$NODE_NUMBER" -ge 0 ]; then
         echo "setup single node error: missing global var 'NODE_NUMBER'"
         return 1
     fi
-
+    
     set_hostname ${NODES[${NODE_NUMBER}-name]}
-
+    
     add_hosts_ssh_entries
-   
+    
     add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
     
-    import_rpm_keys
-
     $FORMAT_DRIVE && format_xfs_drive ${NODES[${NODE_NUMBER}-disk]}
-
-    # dissable_iptables
-    add_iptables_rules ${NODES[${NODE_NUMBER}-ip]} ${NODES[${NODE_NUMBER}-netmask]}
     
+    
+    [ $(lsb_release -si) == "CentOS" ] && add_iptables_rules ${NODES[${NODE_NUMBER}-ip]} ${NODES[${NODE_NUMBER}-netmask]}
+
+    [ $(lsb_release -si) == "CentOS" ] && import_rpm_keys
+
 }
 
 
@@ -133,7 +141,7 @@ function push_to_single_node {
 
     local node=$1
 
-    install_extra_sshpass_rpm
+    install_sshpass
 
     echo "######## installing node: ${node} (${NODES[${node}-ip]}) #######"
     sshpass -p "${NODES[${node}-password]}" scp -o StrictHostKeyChecking=no -r ${DIRNAME} "${NODES[${node}-username]}@${NODES[${node}-ip]}:"

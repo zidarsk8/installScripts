@@ -71,7 +71,7 @@ done
 setup_single_node
 
 
-[ "$NODE_NUMBER" -eq 0 ] && install_ceph_deploy_rpm
+[ "$NODE_NUMBER" -eq 0 ] && install_ceph_deploy
 
 [ "$NODE_NUMBER" -eq 0 ] && $GROUP_INSTALL && push_to_nodes
 
