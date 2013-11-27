@@ -1,6 +1,6 @@
 function import_rpm_keys {
 
-    for f in $(dirname $0)/keys/*.key; do 
+    for f in ${DIRNAME}/keys/*.key; do 
       sudo rpm --import $f
     done
 
@@ -14,7 +14,7 @@ function install_ceph_deploy_rpm {
 
     #### install packages for basic ceph-deploy ####
 
-    rpm -Uvh --replacepkgs $(dirname $0)/ceph-deploy-rpm/*.rpm
+    rpm -Uvh --replacepkgs ${DIRNAME}/ceph-deploy-rpm/*.rpm
     
     mv /usr/lib/python2.6/site-packages/ceph_deploy/hosts/centos/install.py{,.orig}
     cp ${DIRNAME}/ceph-deploy-centos-install.py /usr/lib/python2.6/site-packages/ceph_deploy/hosts/centos/install.py
@@ -52,13 +52,15 @@ function install_ceph_rpm {
 
     #### install packages for basic ceph-deploy ####
 
-    rpm -Uvh --replacepkgs $(dirname $0)/ceph-rpm/*.rpm
+    rpm -Uvh --replacepkgs ${DIRNAME}/ceph-rpm/*.rpm
 
 
 }
 
 
 function install_sshpass {
+
+    sshpass -h > /dev/null 2>&1 && return
 
     $VERBOSE && echo "intalling packages: sshpass"
 
@@ -67,6 +69,7 @@ function install_sshpass {
     else
         apt-get install -y sshpass
     fi
+    
 }
 
 
@@ -76,7 +79,7 @@ function install_extra_rpm {
 
     #### install packages for basic ceph-deploy ####
 
-    rpm -Uvh --replacepkgs $(dirname $0)/extra-rpm/*.rpm
+    rpm -Uvh --replacepkgs ${DIRNAME}/extra-rpm/*.rpm
 
 }
 
@@ -87,11 +90,25 @@ function install_kernel_lt_rpm {
 
     #### install packages for basic ceph-deploy ####
 
-    rpm -Uvh --replacepkgs $(dirname $0)/kernel-lt-rpm/*.rpm
+    rpm -Uvh --replacepkgs ${DIRNAME}/kernel-lt-rpm/*.rpm
 
     $VERBOSE && echo "updatign grub conf "
     sed -i 's/default=1/default=0/g' /boot/grub/grub.conf
 }
 
+
+function install_xfsprogs {
+    
+    mkfs.xfs -V  > /dev/null 2>&1 && return
+
+    $VERBOSE && echo "intalling packages: xfsprogs"
+
+    if [ $(lsb_release -si) == "CentOS" ]; then
+        rpm -Uvh ${DIRNAME}/extra-rpm/xfsdump-3.0.4-3.el6.x86_64.rpm ${DIRNAME}/rpm/xfsprogs-3.1.1-10.el6_4.1.x86_64.rpm
+    else
+        apt-get install -y xfsprogs
+    fi
+
+}
 
 

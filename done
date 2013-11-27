@@ -8,7 +8,7 @@ sleep 5
 
 for ((i=0;i<=5;i++)); do     sshpass -p "a" ssh -p 2${i}022 root@loc "echo \"\" > /etc/resolv.conf"; done
 
-sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph_centos/ root@loc: && sshpass -p "a" ssh -tp20022 root@loc "./ceph_centos/ceph"
+sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph/ root@loc: && sshpass -p "a" ssh -tp20022 root@loc "./ceph/ceph"
 
 
 
@@ -31,12 +31,33 @@ ubuntu-reset net && ubuntu-start
 
 sleep 5
 
-sshpass -p "a" scp -rP30022 /home/zidar/programming/installScripts/ceph_centos/ root@loc: && sshpass -p "a" ssh -tp30022 root@loc "./ceph_centos/ceph"
+sshpass -p "a" scp -rP30022 /home/zidar/programming/installScripts/ceph/ root@loc: && sshpass -p "a" ssh -tp30022 root@loc "./ceph/ceph"
 
 
+
+# ubuntu-reset ins && ubuntu-start
 
 sshpass -p "cephpass" ssh -tp30022 ceph@loc 
 
 ./ceph-install/ceph-storage-cluster.sh clustername
+
+
+   
+
+
+
+VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node0 --register
+
+VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node1 --register
+
+VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node2 --register
+
+VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node3 --register
+
+VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node4 --register
+
+VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node5 --register
+
+
 
 

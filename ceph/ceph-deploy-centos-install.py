@@ -23,7 +23,7 @@ def install(distro, version_kind, version, adjust_repos):
             [
                 'rpm',
                 '--import',
-                '/root/ceph_centos/keys/ceph_release.key'
+                '/root/ceph/keys/ceph_release.key'
                 #"https://ceph.com/git/?p=ceph.git;a=blob_plain;f=keys/{key}.asc".format(key=key)    # replaced with offline resource
             ]
         )
@@ -47,7 +47,7 @@ def install(distro, version_kind, version, adjust_repos):
                 'rpm',
                 '-Uvh',
                 '--replacepkgs',
-                '/root/ceph_centos/extra-rpm/ceph-release-1-0.el6.noarch.rpm'
+                '/root/ceph/extra-rpm/ceph-release-1-0.el6.noarch.rpm'
                 #'{url}noarch/ceph-release-1-0.el6.noarch.rpm'.format(url=url),    # replaced with offline resource
             ],
         )
@@ -58,7 +58,7 @@ def install(distro, version_kind, version, adjust_repos):
             'rpm',
             '-Uvh',
             '--replacepkgs',
-            '/root/ceph_centos/ceph-rpm/*.rpm'
+            '/root/ceph/ceph-rpm/*.rpm'
             # 'yum',
             # '-y',
             # '-q',
@@ -86,7 +86,7 @@ def install_epel(distro):
                 distro.conn,
                 [
                     '--replacepkgs',
-                    '/root/ceph_centos/extra-rpm/epel-release-6*.rpm',
+                    '/root/ceph/extra-rpm/epel-release-6*.rpm',
                 ],
             )
         else:

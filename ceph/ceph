@@ -34,20 +34,23 @@ NODE_NUMBER=0
 GROUP_INSTALL=true
 QUIET=
 FORMAT_DRIVE=false
+FORMAT_DRIVE_ARG=""
+SYNC_ALL=""
 
-while getopts “n:r:sqfh” OPTION
+while getopts “n:r:s:qfh” OPTION
 do
      case $OPTION in
          h)
              usage
              exit
              ;;
-         r)
+         r)    
              push_to_single_node $OPTARG
              exit 0
              ;;
          s)
-             sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+             SYNC_ALL=$OPTARG
+             sync_all_ssh_keys
              exit
              ;;
          n)  
@@ -57,8 +60,9 @@ do
          q)
              QUIET="-q"
              ;;
-         q)
+         f)
              FORMAT_DRIVE=true
+             FORMAT_DRIVE_ARG=" -f "
              ;;
          ?)
              usage

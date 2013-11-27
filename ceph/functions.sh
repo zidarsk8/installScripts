@@ -2,7 +2,7 @@
 
 function sync_ssh_keys { 
 
-    install_extra_sshpass_rpm 
+    install_sshpass 
 
     if [ "$#" -lt 2 ]; then
         echo "this should only be run on the server node"
@@ -87,9 +87,7 @@ function add_ceph_user {
     sudo -u ${ceph_username} -H ssh-keygen -qf /home/${ceph_username}/.ssh/${ssh_key_name} -t rsa -N ''
 
 
-    cp ~/.ssh/config /home/${ceph_username}/.ssh/
-    chown ${ceph_username}:${ceph_username} -R /home/${ceph_username}/.ssh
-    
+    add_hosts_ssh_entries ${ceph_username} 
 
 }
 
@@ -101,9 +99,11 @@ function add_ceph_user {
 function reboot_all {
 
     for  (( i=1; i<$NODE_COUNT; i++ )); do
+        sleep 1
         sshpass -p "${NODES[$i-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[$i-username]}@${NODES[$i-ip]} "reboot"
     done
 
+    sleep 1
     reboot
 
 }
@@ -118,11 +118,11 @@ function setup_single_node {
     
     set_hostname ${NODES[${NODE_NUMBER}-name]}
     
-    add_hosts_ssh_entries
+    
     
     add_ceph_user $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
     
-    $FORMAT_DRIVE && format_xfs_drive ${NODES[${NODE_NUMBER}-disk]}
+    $FORMAT_DRIVE && format_xfs_drive ${NODES[${NODE_NUMBER}-disk]}  $MOUNTPOINT
     
     
     [ $(lsb_release -si) == "CentOS" ] && add_iptables_rules ${NODES[${NODE_NUMBER}-ip]} ${NODES[${NODE_NUMBER}-netmask]}
@@ -145,7 +145,7 @@ function push_to_single_node {
 
     echo "######## installing node: ${node} (${NODES[${node}-ip]}) #######"
     sshpass -p "${NODES[${node}-password]}" scp -o StrictHostKeyChecking=no -r ${DIRNAME} "${NODES[${node}-username]}@${NODES[${node}-ip]}:"
-    sshpass -p "${NODES[${node}-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[${node}-username]}@${NODES[${node}-ip]} "${DIRNAME}/ceph -n ${node}"
+    sshpass -p "${NODES[${node}-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[${node}-username]}@${NODES[${node}-ip]} "${DIRNAME}/ceph -n ${node} $FORMAT_DRIVE_ARG $QUIET "
 }
 
 
@@ -161,15 +161,37 @@ function push_to_nodes {
 
 }
 
+function sync_all_ssh_keys {
 
+    add_hosts_ssh_entries $CEPH_USERNAME 
+    
+    if [ "$SYNC_ALL" == "all" ]; then
+
+        install_sshpass
+        for  (( node=1; node<$NODE_COUNT; node++ )); do
+            sshpass -p "${NODES[${node}-password]}" scp -o StrictHostKeyChecking=no -r ${DIRNAME} "${NODES[${node}-username]}@${NODES[${node}-ip]}:"
+            sshpass -p "${NODES[${node}-password]}" ssh -o StrictHostKeyChecking=no -t ${NODES[${node}-username]}@${NODES[${node}-ip]} "${DIRNAME}/ceph -s single"
+           
+        done
+
+        sync_ssh_keys $CEPH_USERNAME $CEPH_PASSWORD $SSH_KEY_FILE
+    fi
+    
+}
 
 function format_xfs_drive {
+
+    if [ "$#" -lt 2 ]; then
+        echo "usage: format_xfs_drive disk mountpoint"
+        return 1
+    fi
+
+    install_xfsprogs
 
     label=cephxfs
     disk=$1
 
-    rpm -Uvh $(dirname $0)/extra-rpm/xfsdump-3.0.4-3.el6.x86_64.rpm $(dirname $0)/rpm/xfsprogs-3.1.1-10.el6_4.1.x86_64.rpm
-
+    
     echo "o
 c
 u
@@ -182,6 +204,8 @@ p
 w
 " | fdisk ${disk}
 
+    sleep 1
+    
     mkfs.xfs "${disk}1"
 
     /usr/sbin/xfs_admin -L $label "${disk}1"
@@ -190,7 +214,7 @@ w
 
     mkdir -p ${mountpoint}
 
-    #echo "${disk}1   $mountpoint   xfs defaults   1 2" >> /etc/fstab
+    echo "${disk}1   $mountpoint   xfs defaults   1 2" >> /etc/fstab
     mount "${disk}1" "$mountpoint"
 
 }

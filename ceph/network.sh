@@ -37,9 +37,21 @@ function add_hosts_ssh_entry {
 
 function add_hosts_ssh_entries {
 
+    if [ "$#" -lt 1 ]; then
+        echo "usage: add_hosts_ssh_entries username"
+        return 1
+    fi
+
+    local ceph_username=$1
+
     for (( i=0; i<$NODE_COUNT; i++ )); do
         add_hosts_ssh_entry ${NODES[$i-ip]} ${NODES[$i-name]} $SSH_KEY_FILE $CEPH_USERNAME
     done
+
+    if id -u ${ceph_username} >/dev/null 2>&1; then
+        cp ~/.ssh/config /home/${ceph_username}/.ssh/
+        chown ${ceph_username}:${ceph_username} -R /home/${ceph_username}/.ssh
+    fi
 
 }
 
