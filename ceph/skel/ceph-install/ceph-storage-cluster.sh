@@ -25,6 +25,9 @@ source "${DIRNAME}/ceph-storage-cluster.cfg"
 
 cluster_name=$1
 
+
+
+
 cd 
 
 mkdir "$cluster_name"
@@ -50,13 +53,15 @@ for ((i=0;i<cnt;i++)); do
 done
 
 
-if $ZAP ; then
+if $CLUSTER_ZAP ; then
     ceph-deploy disk zap ${osd_dev[@]}
+    ceph-deploy osd prepare ${osd_dev[@]}
+    ceph-deploy osd activate ${osd_block[@]}
+else
+    ceph-deploy osd prepare ${osd_dev[@]}
+    ceph-deploy osd activate ${osd_dev[@]}
 fi
 
-ceph-deploy osd prepare ${osd_dev[@]}
-
-ceph-deploy osd activate ${osd_block[@]}
 
 
 ceph-deploy admin ${CLUSTER_NODES[@]}
@@ -64,3 +69,5 @@ ceph-deploy admin ${CLUSTER_NODES[@]}
 
 
 ceph health
+
+

@@ -1,0 +1,79 @@
+#!/bin/bash
+
+
+## Storage Cluster Quick Start
+
+ceph-deploy new ceph-node1
+
+ceph-deploy install ceph-node1 ceph-node2 ceph-node3 ceph-admin	
+
+ceph-deploy mon create ceph-node1
+
+ceph-deploy gatherkeys ceph-node1
+
+ceph-deploy osd prepare ceph-node2:/mnt/xfs ceph-node3:/mnt/xfs
+
+ceph-deploy osd activate ceph-node2:/mnt/xfs ceph-node3:/mnt/xfs
+
+ceph-deploy admin ceph-admin ceph-node1 ceph-node2 ceph-node3
+
+
+
+
+## Ceph FS Quick Start
+
+lsb_release -a
+uname -r
+
+
+
+
+ceph-deploy install ceph-node5
+
+ceph -s 
+
+
+grep key ceph.client.admin.keyring | sed "s/\skey = //g" > admin.secret
+
+chmod 600 admin.secret
+
+scp admin.secret ceph-node5:
+
+
+
+
+ssh ceph-node5
+
+
+
+
+
+
+
+
+yes y | ceph-deploy purgedata ceph-admin ceph-node1 ceph-node2 ceph-node3 ceph-node4 ceph-node5 
+
+ceph-deploy forgetkeys
+
+
+
+ceph-deploy new ceph-admin
+
+ceph-deploy install ceph-admin ceph-node1 ceph-node2 ceph-node3 ceph-node4 ceph-node5 
+
+ceph-deploy --overwrite-conf mon create ceph-admin
+
+ceph-deploy gatherkeys ceph-admin
+
+ceph-deploy osd prepare ceph-node2:/mnt/xfs ceph-node3:/mnt/xfs
+
+ceph-deploy osd activate ceph-node2:/mnt/xfs ceph-node3:/mnt/xfs
+
+ceph-deploy admin ceph-admin ceph-node1 ceph-node2 ceph-node3
+
+
+
+ceph-deploy mon create ceph-admin
+
+
+
