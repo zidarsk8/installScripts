@@ -1,17 +1,11 @@
 
-centos-reset nonet && centos-start 4
-
-
-sleep 5
-
-sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph/ root@loc: && sshpass -p "a" ssh -tp20022 root@loc "./ceph/ceph"
-
-sleep 20
-
-sshpass -p "cephpass" ssh -tp20022 ceph@loc "./ceph-install/ceph-storage-cluster.sh clustername"
-
-
-sshpass -p "cephpass" ssh -tp20022 ceph@loc
+centos-reset nonet && 
+centos-start 4 && 
+sleep 5 &&
+sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph/ root@loc: && sshpass -p "a" ssh -tp20022 root@loc "./ceph/ceph"  &&
+sleep 30 &&
+sshpass -p "cephpass" ssh -tp20022 ceph@loc "./ceph-install/ceph-storage-cluster.sh -n clustername" &&
+sshpass -p "cephpass" ssh -tp20022 ceph@loc 
 
 
 

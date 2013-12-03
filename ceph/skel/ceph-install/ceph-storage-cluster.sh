@@ -2,45 +2,95 @@
 
 #### check script arguments ####
 
-EXPECTED_ARGS=1
-E_BADARGS=65
+
+
+function usage {
+cat << EOF
+usage: $0 options
+
+This script run the test1 or test2 over a machine.
+
+OPTIONS:
+   -n      name
+   -d      dry run, only print commands without running them 
+   -h      help
+EOF
+}
+
+
+
+DIRNAME=$(dirname "$0")
+
+source "${DIRNAME}/ceph.cfg"
+source "${DIRNAME}/ceph-storage-cluster.cfg"
+
+
+CLUSTER_NAME=""
+DRY=false
+
+while getopts “n:d” OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit
+             ;;
+         n)  
+             CLUSTER_NAME=$OPTARG
+             ;;
+         d)  
+             DRY=true
+             ;;
+         ?)
+             usage
+             exit
+             ;;
+     esac
+done
+
+
+
 
 if [[ $EUID -eq 0 ]]; then
    echo "don't run this as root" 
    exit 1
 fi
 
-if [ $# -ne $EXPECTED_ARGS ]; then
-  echo "Usage: $(basename "$0") cluster_name"
-  echo ""
-  exit $E_BADARGS
+if [ $CLUSTER_NAME -eq "" ]; then
+    usage
+    exit
 fi
 
-DIRNAME=$(dirname "$0")
-
-
-source "${DIRNAME}/ceph.cfg"
-source "${DIRNAME}/ceph-storage-cluster.cfg"
-
-
-cluster_name=$1
 
 
 
 
+
+
+echo "cd"
 cd 
 
-mkdir "$cluster_name"
-cd "$cluster_name"
+
+echo    "mkdir \"$CLUSTER_NAME\""
+$DRY || mkdir "$CLUSTER_NAME"
+
+cd "$CLUSTER_NAME"
+cd "$CLUSTER_NAME"
 
 
-ceph-deploy install ${CLUSTER_NODES[@]}
+echo    "ceph-deploy install ${CLUSTER_NODES[@]}"
+$DRY || ceph-deploy install ${CLUSTER_NODES[@]}
 
-ceph-deploy new $CLUSTER_MONITOR
 
-ceph-deploy mon create $CLUSTER_MONITOR
+echo    "ceph-deploy new $CLUSTER_MONITOR"
+$DRY || ceph-deploy new $CLUSTER_MONITOR
 
-ceph-deploy gatherkeys $CLUSTER_MONITOR
+echo    "ceph-deploy mon create $CLUSTER_MONITOR"
+$DRY || ceph-deploy mon create $CLUSTER_MONITOR
+
+echo    "ceph-deploy gatherkeys $CLUSTER_MONITOR"
+$DRY || ceph-deploy gatherkeys $CLUSTER_MONITOR
+
 
 
 osd_dev=()
@@ -54,20 +104,26 @@ done
 
 
 if $CLUSTER_ZAP ; then
-    ceph-deploy disk zap ${osd_dev[@]}
-    ceph-deploy osd prepare ${osd_dev[@]}
-    ceph-deploy osd activate ${osd_block[@]}
+    echo    "ceph-deploy disk zap ${osd_dev[@]}"
+    $DRY || ceph-deploy disk zap ${osd_dev[@]}
+    echo    "ceph-deploy osd prepare ${osd_dev[@]}"
+    $DRY || ceph-deploy osd prepare ${osd_dev[@]}
+    echo    "ceph-deploy osd activate ${osd_block[@]}"
+    $DRY || ceph-deploy osd activate ${osd_block[@]}
 else
-    ceph-deploy osd prepare ${osd_dev[@]}
-    ceph-deploy osd activate ${osd_dev[@]}
+    echo    "ceph-deploy osd prepare ${osd_dev[@]}"
+    $DRY || ceph-deploy osd prepare ${osd_dev[@]}
+    echo    "ceph-deploy osd activate ${osd_dev[@]}"
+    $DRY || ceph-deploy osd activate ${osd_dev[@]}
 fi
 
 
 
-ceph-deploy admin ${CLUSTER_NODES[@]}
+echo    "ceph-deploy admin ${CLUSTER_NODES[@]}"
+$DRY || ceph-deploy admin ${CLUSTER_NODES[@]}
 
 
+echo    "ceph health"
 
-ceph health
-
+$DRY || ceph health
 
