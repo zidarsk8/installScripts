@@ -71,23 +71,29 @@ echo "cd"
 cd 
 
 
+echo "" 
 echo    "mkdir \"$CLUSTER_NAME\""
 $DRY || mkdir "$CLUSTER_NAME"
 
-cd "$CLUSTER_NAME"
-cd "$CLUSTER_NAME"
+echo "" 
+echo    "mkdir cd "$CLUSTER_NAME"
+$DRY || cd "$CLUSTER_NAME"
 
 
+echo "" 
 echo    "ceph-deploy install ${CLUSTER_NODES[@]}"
 $DRY || ceph-deploy install ${CLUSTER_NODES[@]}
 
 
+echo "" 
 echo    "ceph-deploy new $CLUSTER_MONITOR"
 $DRY || ceph-deploy new $CLUSTER_MONITOR
 
+echo "" 
 echo    "ceph-deploy mon create $CLUSTER_MONITOR"
 $DRY || ceph-deploy mon create $CLUSTER_MONITOR
 
+echo "" 
 echo    "ceph-deploy gatherkeys $CLUSTER_MONITOR"
 $DRY || ceph-deploy gatherkeys $CLUSTER_MONITOR
 
@@ -104,25 +110,32 @@ done
 
 
 if $CLUSTER_ZAP ; then
-    echo    "ceph-deploy disk zap ${osd_dev[@]}"
+    echo "" 
+echo    "ceph-deploy disk zap ${osd_dev[@]}"
     $DRY || ceph-deploy disk zap ${osd_dev[@]}
-    echo    "ceph-deploy osd prepare ${osd_dev[@]}"
+    echo "" 
+echo    "ceph-deploy osd prepare ${osd_dev[@]}"
     $DRY || ceph-deploy osd prepare ${osd_dev[@]}
-    echo    "ceph-deploy osd activate ${osd_block[@]}"
+    echo "" 
+echo    "ceph-deploy osd activate ${osd_block[@]}"
     $DRY || ceph-deploy osd activate ${osd_block[@]}
 else
-    echo    "ceph-deploy osd prepare ${osd_dev[@]}"
+    echo "" 
+echo    "ceph-deploy osd prepare ${osd_dev[@]}"
     $DRY || ceph-deploy osd prepare ${osd_dev[@]}
-    echo    "ceph-deploy osd activate ${osd_dev[@]}"
+    echo "" 
+echo    "ceph-deploy osd activate ${osd_dev[@]}"
     $DRY || ceph-deploy osd activate ${osd_dev[@]}
 fi
 
 
 
+echo "" 
 echo    "ceph-deploy admin ${CLUSTER_NODES[@]}"
 $DRY || ceph-deploy admin ${CLUSTER_NODES[@]}
 
 
+echo "" 
 echo    "ceph health"
 
 $DRY || ceph health
