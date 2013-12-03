@@ -1,25 +1,17 @@
 
-
 centos-reset update && centos-start 
-
 
 
 sleep 5
 
-for ((i=0;i<=5;i++)); do     sshpass -p "a" ssh -p 2${i}022 root@loc "echo \"\" > /etc/resolv.conf"; done
-
 sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph/ root@loc: && sshpass -p "a" ssh -tp20022 root@loc "./ceph/ceph"
-
-
 
 sleep 20
 
-for ((i=0;i<=5;i++)); do     sshpass -p "a" ssh -p 2${i}022 root@loc "echo \"\" > /etc/resolv.conf"; done
+sshpass -p "cephpass" ssh -tp20022 ceph@loc "./ceph-install/ceph-storage-cluster.sh clustername"
 
-sshpass -p "cephpass" ssh -tp20022 ceph@loc 
 
-./ceph-install/ceph-storage-cluster.sh clustername
-
+sshpass -p "cephpass" ssh -tp20022 ceph@loc
 
 
 
@@ -57,6 +49,15 @@ VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubu
 VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node4 --register
 
 VBoxManage clonevm ubuntu-server-lvm --snapshot netscr --options link --name ubuntu-lvm-node5 --register
+
+
+
+
+
+
+
+
+for ((i=0;i<=5;i++)); do     sshpass -p "a" ssh -p 2${i}022 root@loc "echo 'PEERDNS=no' >> /etc/sysconfig/network-scripts/ifcfg-eth0 && echo '' > /etc/resolv.conf"; done
 
 
 
