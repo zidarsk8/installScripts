@@ -9,7 +9,7 @@ sshpass -p "a" scp -rP20022 /home/zidar/programming/installScripts/ceph/ root@lo
 
 sleep 30 
 
-sshpass -p "cephpass" ssh -tp20022 ceph@loc "./ceph-install/ceph-storage-cluster.sh -n clustername" 
+sshpass -p "cephpass" ssh -tp20022 ceph@loc "./ceph-install/ceph-storage-cluster.sh -n clustername -d" 
 
 sshpass -p "cephpass" ssh -tp20022 ceph@loc 
 

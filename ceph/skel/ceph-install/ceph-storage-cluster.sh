@@ -76,7 +76,7 @@ echo    "mkdir \"$CLUSTER_NAME\""
 $DRY || mkdir "$CLUSTER_NAME"
 
 echo "" 
-echo    "mkdir cd "$CLUSTER_NAME"
+echo    "cd \"$CLUSTER_NAME\""
 $DRY || cd "$CLUSTER_NAME"
 
 
