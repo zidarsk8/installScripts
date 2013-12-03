@@ -1,0 +1,7 @@
+#!/bin/bash
+
+for ((i=0;i<=5;i++)); do
+    node=ubuntu-lvm-node${i}
+    VBoxManage controlvm $node savestate
+    VBoxManage snapshot $node take $1
+done

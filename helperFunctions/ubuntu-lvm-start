@@ -4,6 +4,7 @@ N=5
 [ "$#" -eq 1 ] && N=$1
 
 for (( i=0 ; i<$N ; i++ )); do
-    node=Ubuntu-server-node${i}
+    node=ubuntu-lvm-node${i}
+    sleep 1
     nohup VBoxHeadless -s $node -v on &> /tmp/headless-ubuntu-server-node${1}.log &
 done

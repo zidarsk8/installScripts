@@ -1,5 +1,5 @@
 
-centos-reset update && centos-start 
+centos-reset nonet && centos-start 4
 
 
 sleep 5

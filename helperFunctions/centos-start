@@ -1,6 +1,9 @@
 #!/bin/bash
 
-for ((i=0;i<=5;i++)); do
+N=5
+[ "$#" -eq 1 ] && N=$1
+
+for (( i=0 ; i<$N ; i++ )); do
     node=centos-node${i}
     nohup VBoxHeadless -s $node -v on &> /tmp/headless-centos-node${1}.log &
 done
