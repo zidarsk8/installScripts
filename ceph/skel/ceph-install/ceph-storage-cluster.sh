@@ -111,20 +111,30 @@ done
 
 if $CLUSTER_ZAP ; then
     echo "" 
-echo    "ceph-deploy disk zap ${osd_dev[@]}"
+    echo    "ceph-deploy disk zap ${osd_dev[@]}"
     $DRY || ceph-deploy disk zap ${osd_dev[@]}
     echo "" 
-echo    "ceph-deploy osd prepare ${osd_dev[@]}"
+    echo    "ceph-deploy osd prepare ${osd_dev[@]}"
     $DRY || ceph-deploy osd prepare ${osd_dev[@]}
+
     echo "" 
-echo    "ceph-deploy osd activate ${osd_block[@]}"
+    for ((i=0;i<cnt;i++)); do
+        echo    "ssh ${CLUSTER_OSD[$i]} \"sudo reboot\""
+        $DRY || ssh "${CLUSTER_OSD[$i]}" "sudo reboot"
+    done
+
+    echo    "# sleep for reboot"
+    $DRY || sleep 50
+    
+    echo "" 
+    echo    "ceph-deploy osd activate ${osd_block[@]}"
     $DRY || ceph-deploy osd activate ${osd_block[@]}
 else
     echo "" 
-echo    "ceph-deploy osd prepare ${osd_dev[@]}"
+    echo    "ceph-deploy osd prepare ${osd_dev[@]}"
     $DRY || ceph-deploy osd prepare ${osd_dev[@]}
     echo "" 
-echo    "ceph-deploy osd activate ${osd_dev[@]}"
+    echo    "ceph-deploy osd activate ${osd_dev[@]}"
     $DRY || ceph-deploy osd activate ${osd_dev[@]}
 fi
 

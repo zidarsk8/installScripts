@@ -1,7 +1,5 @@
 
-centos-reset nonet 
-
-centos-start 4 
+centos-reset nonet && centos-start
 
 sleep 5 
 
@@ -11,7 +9,45 @@ sleep 30
 
 sshpass -p "cephpass" ssh -tp20022 ceph@loc "./ceph-install/ceph-storage-cluster.sh -n clustername -d" 
 
+
 sshpass -p "cephpass" ssh -tp20022 ceph@loc 
+
+
+
+
+
+
+
+
+centos-reset insceph && centos-start
+
+sshpass -p "cephpass" ssh -tp20022 ceph@loc 
+
+ssh ceph-node1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
